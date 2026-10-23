@@ -1,0 +1,6 @@
+Django==6.1.2
+djangorestframework==3.18.3
+drf-spectacular==0.30.0
+psycopg[binary]==3.3.6
+redis==8.1.0
+hiredis==3.5.0

@@ -1,0 +1,41 @@
+---
+description: Django-Grundconfig und modulare App-Struktur
+alwaysApply: true
+---
+
+# Backend-Struktur
+
+Die Projektkonfiguration liegt in `backend/backend` (`settings`, Root-`urls`, `wsgi`, `asgi`).
+
+Jede App liegt unter `backend/apps/<app>/`:
+
+```text
+apps/<app>/
+  admin/
+  api/
+    v1/
+      permissions/
+      schema/
+      serializers/
+      services/
+      views/
+      urls.py
+  exceptions/
+  migrations/
+  models/
+  services/
+  tests/
+    unit/
+    integration/
+    api/
+  apps.py
+  urls.py              # bindet standardmäßig api/v1 ein
+```
+
+- Ordner sind Pakete. Öffentliche Klassen und Funktionen werden in `__init__.py` importiert.
+- `apps/<app>/urls.py` hängt `v1/` an `apps.<app>.api.v1.urls`.
+- `AppConfig` steht in `apps/<app>/apps.py`, `name` ist `apps.<app>`.
+- `INSTALLED_APPS` trägt den Config-Pfad im Abschnitt `interne Apps`, die Root-URLconf `include("apps.<app>.urls")`.
+- Neue Versionen sind Geschwister von `v1` und werden in der App-`urls.py` ergänzt.
+- Neue Apps mit `make create_app <appname>` anlegen.
+- Tests liegen in `tests/unit`, `tests/integration` und `tests/api`. `make test` startet pytest, `make loadtest` Locust.
