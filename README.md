@@ -1,4 +1,4 @@
-# jd_pmgt
+# jd_template
 
 Basis für eine Web-Anwendung mit Django-API und Next.js-Frontend. Lokal läuft alles über Docker Compose: Backend, Frontend, PostgreSQL und Redis.
 
