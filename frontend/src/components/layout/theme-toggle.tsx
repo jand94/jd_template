@@ -1,6 +1,9 @@
 "use client";
 
+import { Monitor, Moon, Sun } from "lucide-react";
 import { useEffect, useSyncExternalStore } from "react";
+import { Icon } from "@/components/ui/icon";
+import { focusRing, pressable } from "@/components/ui/styles";
 import {
   applyTheme,
   readTheme,
@@ -21,11 +24,14 @@ const nextMode: Record<ThemeMode, ThemeMode> = {
   dark: "system",
 };
 
-const pressable =
-  "cursor-pointer touch-manipulation rounded-md transition-[color,background-color,transform] duration-150 ease-[cubic-bezier(0.23,1,0.32,1)] active:scale-[0.97] motion-reduce:transition-none motion-reduce:active:transform-none focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring";
+const icons = {
+  system: Monitor,
+  light: Sun,
+  dark: Moon,
+} as const;
 
 export function ThemeToggle() {
-  const mode = useSyncExternalStore(subscribeTheme, readTheme, () => "system");
+  const mode = useSyncExternalStore<ThemeMode>(subscribeTheme, readTheme, () => "system");
 
   useEffect(() => {
     if (mode !== "system") {
@@ -45,40 +51,14 @@ export function ThemeToggle() {
   return (
     <button
       type="button"
-      className={`${pressable} inline-flex h-11 items-center gap-2 px-3 text-foreground hover:bg-muted`}
+      className={`${pressable} ${focusRing} inline-flex h-11 items-center gap-2 rounded-lg px-3 text-foreground hover:bg-muted`}
       aria-label={`Darstellung wechseln, aktuell ${labels[mode]}`}
       onClick={cycle}
     >
-      <ThemeIcon mode={mode} />
+      <Icon icon={icons[mode]} className="size-5" />
       <span className="hidden min-w-14 text-left text-sm font-medium sm:inline">
         {labels[mode]}
       </span>
     </button>
-  );
-}
-
-function ThemeIcon({ mode }: { mode: ThemeMode }) {
-  if (mode === "light") {
-    return (
-      <svg aria-hidden="true" viewBox="0 0 24 24" className="size-5 fill-none stroke-current stroke-[1.75]">
-        <circle cx="12" cy="12" r="4" />
-        <path d="M12 3v2M12 19v2M3 12h2M19 12h2M5.6 5.6l1.4 1.4M17 17l1.4 1.4M18.4 5.6 17 7M7 17l-1.4 1.4" strokeLinecap="round" />
-      </svg>
-    );
-  }
-
-  if (mode === "dark") {
-    return (
-      <svg aria-hidden="true" viewBox="0 0 24 24" className="size-5 fill-none stroke-current stroke-[1.75]">
-        <path d="M20 14.5A7.5 7.5 0 0 1 9.5 4 7 7 0 1 0 20 14.5Z" strokeLinejoin="round" />
-      </svg>
-    );
-  }
-
-  return (
-    <svg aria-hidden="true" viewBox="0 0 24 24" className="size-5 fill-none stroke-current stroke-[1.75]">
-      <rect x="3" y="4" width="18" height="13" rx="2" />
-      <path d="M8 21h8M12 17v4" strokeLinecap="round" />
-    </svg>
   );
 }

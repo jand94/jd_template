@@ -6,7 +6,15 @@
   --muted: #f4f4f5;
   --muted-foreground: #52525b;
   --border: #e4e4e7;
-  --ring: #171717;
+  --card: #ffffff;
+  --accent: #0f766e;
+  --accent-soft: #f0fdfa;
+  --ring: #0f766e;
+  --danger: #b91c1c;
+  --danger-soft: #fef2f2;
+  --success: #166534;
+  --success-soft: #f0fdf4;
+  --shadow: 0 1px 2px rgb(23 23 23 / 0.06);
   color-scheme: light;
 }
 
@@ -16,7 +24,15 @@
   --muted: #18181b;
   --muted-foreground: #a1a1aa;
   --border: #27272a;
-  --ring: #fafafa;
+  --card: #111113;
+  --accent: #2dd4bf;
+  --accent-soft: #042f2e;
+  --ring: #2dd4bf;
+  --danger: #fca5a5;
+  --danger-soft: #450a0a;
+  --success: #86efac;
+  --success-soft: #052e16;
+  --shadow: 0 0 0 transparent;
   color-scheme: dark;
 }
 
@@ -27,7 +43,15 @@
     --muted: #18181b;
     --muted-foreground: #a1a1aa;
     --border: #27272a;
-    --ring: #fafafa;
+    --card: #111113;
+    --accent: #2dd4bf;
+    --accent-soft: #042f2e;
+    --ring: #2dd4bf;
+    --danger: #fca5a5;
+    --danger-soft: #450a0a;
+    --success: #86efac;
+    --success-soft: #052e16;
+    --shadow: 0 0 0 transparent;
     color-scheme: dark;
   }
 }
@@ -38,7 +62,14 @@
   --color-muted: var(--muted);
   --color-muted-foreground: var(--muted-foreground);
   --color-border: var(--border);
+  --color-card: var(--card);
+  --color-accent: var(--accent);
+  --color-accent-soft: var(--accent-soft);
   --color-ring: var(--ring);
+  --color-danger: var(--danger);
+  --color-danger-soft: var(--danger-soft);
+  --color-success: var(--success);
+  --color-success-soft: var(--success-soft);
   --font-sans: var(--font-geist-sans);
   --font-mono: var(--font-geist-mono);
 }
@@ -48,7 +79,13 @@ html {
 }
 
 body {
-  background: var(--background);
+  background-color: var(--background);
+  background-image: radial-gradient(
+    880px 420px at 0% -8%,
+    color-mix(in oklab, var(--accent) 14%, transparent),
+    transparent 68%
+  );
+  background-repeat: no-repeat;
   color: var(--foreground);
   font-family: var(--font-geist-sans), sans-serif;
 }
@@ -92,5 +129,24 @@ body {
 @media (prefers-reduced-motion: reduce) {
   .nav-dialog[open] {
     transition: none;
+  }
+}
+
+@keyframes menu-in {
+  from {
+    opacity: 0;
+    transform: translateY(-0.25rem);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .menu-in {
+    transform-origin: top right;
+    animation: menu-in 150ms cubic-bezier(0.23, 1, 0.32, 1);
   }
 }

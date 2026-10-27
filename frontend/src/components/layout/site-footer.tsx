@@ -1,4 +1,7 @@
 import Link from "next/link";
+import { Layers } from "lucide-react";
+import { Icon } from "@/components/ui/icon";
+import { focusRing } from "@/components/ui/styles";
 import type { NavigationItem } from "@/config/navigation";
 
 type SiteFooterProps = {
@@ -20,7 +23,12 @@ export function SiteFooter({
     <footer className="mt-auto border-t border-border pb-[env(safe-area-inset-bottom)]">
       <div className="mx-auto grid w-full max-w-6xl gap-10 px-4 py-12 sm:px-6 md:grid-cols-2 lg:grid-cols-4 lg:px-8">
         <div className="md:col-span-2">
-          <p className="text-base font-semibold tracking-tight">{projectName}</p>
+          <p className="flex items-center gap-2 text-base font-semibold tracking-tight">
+            <span className="inline-flex size-8 items-center justify-center rounded-lg bg-accent-soft text-accent">
+              <Icon icon={Layers} />
+            </span>
+            {projectName}
+          </p>
           <p className="mt-3 max-w-md text-sm leading-6 text-pretty break-words text-muted-foreground">
             {description}
           </p>
@@ -32,7 +40,7 @@ export function SiteFooter({
               <li key={item.href}>
                 <Link
                   href={item.href}
-                  className="inline-flex min-h-11 items-center rounded-md text-sm text-muted-foreground cursor-pointer touch-manipulation hover:text-foreground focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
+                  className={`inline-flex min-h-11 items-center rounded-lg text-sm text-muted-foreground cursor-pointer touch-manipulation hover:text-foreground ${focusRing}`}
                 >
                   {item.label}
                 </Link>

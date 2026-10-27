@@ -26,7 +26,18 @@ SECRET_KEY = 'django-insecure-tds_&o0vw$+^j%zs-z+dd6qrpz)o1(!d*x(#-@14ayym6#_ter
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
 
-ALLOWED_HOSTS = []
+ALLOWED_HOSTS = [
+    host.strip()
+    for host in os.environ.get('ALLOWED_HOSTS', 'localhost,127.0.0.1,backend').split(',')
+    if host.strip()
+]
+
+# Browser-Origin des Frontends, wenn die Sitzung über den Next-Proxy läuft.
+CSRF_TRUSTED_ORIGINS = [
+    origin.strip()
+    for origin in os.environ.get('CSRF_TRUSTED_ORIGINS', '').split(',')
+    if origin.strip()
+]
 
 
 # Application definition

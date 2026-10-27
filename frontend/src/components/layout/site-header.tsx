@@ -2,19 +2,28 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { useEffect, useId, useRef, useState } from "react";
+import { House, Layers, Menu, Server, X, type LucideIcon } from "lucide-react";
+import { useEffect, useId, useRef, useState, type ReactNode } from "react";
+import { Icon } from "@/components/ui/icon";
+import { focusRing, pressable } from "@/components/ui/styles";
 import { isCurrentPath, type NavigationItem } from "@/config/navigation";
 import { ThemeToggle } from "@/components/layout/theme-toggle";
 
-const pressable =
-  "cursor-pointer touch-manipulation transition-[color,background-color,transform] duration-150 ease-[cubic-bezier(0.23,1,0.32,1)] active:scale-[0.97] motion-reduce:transition-none motion-reduce:active:transform-none focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring";
+const itemIcons: Record<string, LucideIcon> = {
+  "/": House,
+  "/system": Server,
+};
+
+const control = `${pressable} ${focusRing}`;
 
 type SiteHeaderProps = {
   projectName: string;
   items: NavigationItem[];
+  accountMenu: ReactNode;
+  mobileAccount: ReactNode;
 };
 
-export function SiteHeader({ projectName, items }: SiteHeaderProps) {
+export function SiteHeader({ projectName, items, accountMenu, mobileAccount }: SiteHeaderProps) {
   const pathname = usePathname();
   const dialogRef = useRef<HTMLDialogElement>(null);
   const menuButtonRef = useRef<HTMLButtonElement>(null);
@@ -64,13 +73,16 @@ export function SiteHeader({ projectName, items }: SiteHeaderProps) {
   }
 
   return (
-    <header className="sticky top-0 z-40 border-b border-border bg-background pt-[env(safe-area-inset-top)]">
+    <header className="sticky top-0 z-40 border-b border-border bg-background/80 pt-[env(safe-area-inset-top)] backdrop-blur-md">
       <div className="mx-auto flex h-16 max-w-6xl items-center gap-2 px-4 sm:gap-4 sm:px-6 lg:px-8">
         <Link
           href="/"
-          className={`${pressable} min-w-0 truncate rounded-md px-2 text-base font-semibold tracking-tight text-foreground`}
+          className={`${control} inline-flex h-11 min-w-0 items-center gap-2 rounded-lg pr-2 pl-1 text-base font-semibold tracking-tight text-foreground`}
         >
-          {projectName}
+          <span className="inline-flex size-8 shrink-0 items-center justify-center rounded-lg bg-accent-soft text-accent">
+            <Icon icon={Layers} />
+          </span>
+          <span className="truncate">{projectName}</span>
         </Link>
         <nav className="hidden min-w-0 md:block" aria-label="Hauptnavigation">
           <ul className="flex items-center gap-1">
@@ -81,12 +93,13 @@ export function SiteHeader({ projectName, items }: SiteHeaderProps) {
                   <Link
                     href={item.href}
                     aria-current={current ? "page" : undefined}
-                    className={`${pressable} relative inline-flex h-11 items-center rounded-md px-3 text-sm font-medium ${
+                    className={`${control} relative inline-flex h-11 items-center gap-2 rounded-lg px-3 text-sm font-medium ${
                       current
                         ? "text-foreground"
                         : "text-muted-foreground hover:bg-muted hover:text-foreground"
                     }`}
                   >
+                    {itemIcons[item.href] ? <Icon icon={itemIcons[item.href]} /> : null}
                     {item.label}
                     {current ? (
                       <span
@@ -102,16 +115,17 @@ export function SiteHeader({ projectName, items }: SiteHeaderProps) {
         </nav>
         <div className="ml-auto flex items-center gap-1">
           <ThemeToggle />
+          {accountMenu}
           <button
             ref={menuButtonRef}
             type="button"
-            className={`${pressable} inline-flex size-11 items-center justify-center rounded-md text-foreground hover:bg-muted md:hidden`}
+            className={`${control} inline-flex size-11 items-center justify-center rounded-lg text-foreground hover:bg-muted md:hidden`}
             aria-expanded={open}
             aria-controls={menuId}
             aria-label={open ? "Menü schließen" : "Menü öffnen"}
             onClick={open ? closeMenu : openMenu}
           >
-            {open ? <CloseIcon /> : <MenuIcon />}
+            {open ? <Icon icon={X} className="size-5" /> : <Icon icon={Menu} className="size-5" />}
           </button>
         </div>
       </div>
@@ -128,14 +142,19 @@ export function SiteHeader({ projectName, items }: SiteHeaderProps) {
       >
         <div className="max-h-[100dvh] overflow-auto border-b border-border bg-background pb-[env(safe-area-inset-bottom)]">
           <div className="flex h-16 items-center justify-between gap-3 px-4 pt-[env(safe-area-inset-top)]">
-            <p className="min-w-0 truncate font-semibold tracking-tight">{projectName}</p>
+            <p className="flex min-w-0 items-center gap-2 font-semibold tracking-tight">
+              <span className="inline-flex size-8 shrink-0 items-center justify-center rounded-lg bg-accent-soft text-accent">
+                <Icon icon={Layers} />
+              </span>
+              <span className="truncate">{projectName}</span>
+            </p>
             <button
               type="button"
-              className={`${pressable} inline-flex size-11 items-center justify-center rounded-md hover:bg-muted`}
+              className={`${control} inline-flex size-11 items-center justify-center rounded-lg hover:bg-muted`}
               aria-label="Menü schließen"
               onClick={closeMenu}
             >
-              <CloseIcon />
+              <Icon icon={X} className="size-5" />
             </button>
           </div>
           <nav aria-label="Menü">
@@ -147,13 +166,14 @@ export function SiteHeader({ projectName, items }: SiteHeaderProps) {
                     <Link
                       href={item.href}
                       aria-current={current ? "page" : undefined}
-                      className={`${pressable} flex min-h-11 items-center rounded-md border-l-2 px-4 text-base font-medium ${
+                      className={`${control} flex min-h-11 items-center gap-3 rounded-lg border-l-2 px-4 text-base font-medium ${
                         current
-                          ? "border-foreground bg-muted text-foreground"
+                          ? "border-accent bg-muted text-foreground"
                           : "border-transparent text-muted-foreground hover:bg-muted hover:text-foreground"
                       }`}
                       onClick={closeMenu}
                     >
+                      {itemIcons[item.href] ? <Icon icon={itemIcons[item.href]} className="size-5" /> : null}
                       {item.label}
                     </Link>
                   </li>
@@ -161,24 +181,9 @@ export function SiteHeader({ projectName, items }: SiteHeaderProps) {
               })}
             </ul>
           </nav>
+          {mobileAccount}
         </div>
       </dialog>
     </header>
-  );
-}
-
-function MenuIcon() {
-  return (
-    <svg aria-hidden="true" viewBox="0 0 24 24" className="size-5 fill-none stroke-current stroke-[1.75]">
-      <path d="M4 7h16M4 12h16M4 17h16" strokeLinecap="round" />
-    </svg>
-  );
-}
-
-function CloseIcon() {
-  return (
-    <svg aria-hidden="true" viewBox="0 0 24 24" className="size-5 fill-none stroke-current stroke-[1.75]">
-      <path d="M6 6l12 12M18 6 6 18" strokeLinecap="round" />
-    </svg>
   );
 }

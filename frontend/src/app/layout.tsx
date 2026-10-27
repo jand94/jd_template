@@ -4,6 +4,7 @@ import Script from "next/script";
 import { AppShell } from "@/components/layout/app-shell";
 import { themeBootScript } from "@/components/layout/theme";
 import { brand } from "@/config/brand";
+import { AccountLinks, AccountMenu, AccountProvider } from "@/features/accounts";
 import "./globals.css";
 
 const geistSans = Geist({
@@ -35,7 +36,11 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
         <Script id="theme-boot" strategy="beforeInteractive">
           {themeBootScript}
         </Script>
-        <AppShell>{children}</AppShell>
+        <AccountProvider>
+          <AppShell accountMenu={<AccountMenu />} mobileAccount={<AccountLinks />}>
+            {children}
+          </AppShell>
+        </AccountProvider>
       </body>
     </html>
   );
