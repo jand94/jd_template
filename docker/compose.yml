@@ -58,6 +58,11 @@ services:
     build:
       context: ../frontend
       dockerfile: ../docker/frontend/Dockerfile
+    environment:
+      PROJECT_NAME: ${PROJECT_NAME}
+      API_TITLE: ${API_TITLE}
+      API_DESCRIPTION: ${API_DESCRIPTION}
+      API_VERSION: ${API_VERSION}
     ports:
       - "${FRONTEND_PORT}:3000"
     volumes:

@@ -1,0 +1,43 @@
+---
+description: Next.js-Modulstruktur mit dünnem App-Router
+globs: frontend/**/*.{ts,tsx,css}
+alwaysApply: false
+---
+
+# Frontend-Struktur
+
+Anwendungscode liegt in `frontend/src`. Konfiguration (`package.json`, `next.config.ts`, ESLint) bleibt in `frontend/`.
+
+```text
+src/
+  app/                     # nur Routen und Layouts
+    (public)/              # ohne App-Shell
+    (app)/                 # eingeloggte Fläche
+    layout.tsx
+    globals.css
+  components/
+    ui/                    # Primitive ohne Fachlichkeit
+    layout/                # Header, Sidebar, Shell
+  features/<feature>/
+    components/
+    hooks/
+    api/                   # Client zu /<feature>/v1/
+    schemas/
+    types/
+    index.ts               # einzige öffentliche Schnittstelle
+  lib/                     # Fetch-Client, Fehler, Env
+  config/brand.ts           # PROJECT_NAME und API-Namen aus der Umgebung
+```
+
+- Seiten importieren ein Feature nur über `@/features/<feature>`.
+
+```tsx
+import { LoginForm } from "@/features/accounts";
+```
+
+- `components/` und `lib/` importieren keine Features. Features importieren keine anderen Features.
+- Server Components sind der Default. `"use client"` steht nur in der Datei, die Zustand oder Browser-APIs braucht.
+- Routenlokale Dateien liegen in `app/.../_components`. Ordner mit Unterstrich nimmt Next.js aus dem Routing.
+- Eine neue API-Version ist ein Geschwister unter `features/<feature>/api`, analog zu `backend/apps/<app>/api`.
+- `src/config/brand.ts` liest `PROJECT_NAME`, `API_TITLE`, `API_DESCRIPTION` und `API_VERSION`. Compose setzt sie aus `docker/.env`.
+- Feature-Namen: Kleinbuchstaben, Ziffern, Unterstriche. Reserviert sind `app`, `components`, `config`, `features` und `lib`.

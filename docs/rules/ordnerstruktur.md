@@ -72,3 +72,30 @@ path("v1/", include("apps.<app>.api.v1.urls"))
 Die HTTP-Basis einer App ist `/<app>/v1/`. Eine neue Version ist ein Geschwisterpaket von `v1` und bekommt in der App-`urls.py` einen eigenen `path`. Routen einer Version stehen in `api/<version>/urls.py`.
 
 `permissions`, `schema`, `serializers`, `services` und `views` gehören zur Version. Domänenlogik, die keine HTTP-Schicht ist, liegt in `apps/<app>/services` und `apps/<app>/models`.
+
+## Frontend
+
+Anwendungscode liegt in `frontend/src`. `package.json`, `next.config.ts` und ESLint bleiben in `frontend/`. Der Alias `@/*` zeigt auf `./src/*`.
+
+```text
+frontend/src/
+  app/                     # nur Routen und Layouts
+    (public)/              # ohne App-Shell, Gruppe fehlt in der URL
+    (app)/                 # eingeloggte Fläche
+    layout.tsx
+    globals.css
+  components/
+    ui/                    # Primitive ohne Fachlichkeit
+    layout/                # Header, Sidebar, Shell
+  features/<feature>/      # ein Modul pro Fach, analog zu backend/apps/<app>
+    components/
+    hooks/
+    api/                   # Client zu /<feature>/v1/
+    schemas/
+    types/
+    index.ts               # einzige öffentliche Schnittstelle
+  lib/                     # Fetch-Client, Fehler, Env
+  config/
+```
+
+Seiten importieren ein Feature nur über `@/features/<feature>`. `components/` und `lib/` importieren keine Features. Features importieren keine anderen Features. Server Components sind der Default. `"use client"` steht nur in der Datei, die Zustand oder Browser-APIs braucht. Dateien, die nur zu einer Route gehören, liegen in `app/.../_components`. Eine neue API-Version ist ein Geschwister unter `features/<feature>/api`.

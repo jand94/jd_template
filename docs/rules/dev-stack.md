@@ -11,6 +11,8 @@ Der lokale Stack ist Docker Compose. Host-Ports und der Datenbankzugang stehen i
 
 Im Container spricht Django die Datenbank über `POSTGRES_HOST=db` und Redis über `REDIS_HOST=redis` an, jeweils auf dem internen Port. Die Variablen in `.env` sind die Ports auf dem Rechner.
 
+`PROJECT_NAME`, `API_TITLE`, `API_DESCRIPTION` und `API_VERSION` gelten für Backend und Frontend. Das Frontend liest sie in `src/config/brand.ts`. Compose übergibt diese vier Variablen an den Frontend-Container.
+
 PostgreSQL speichert Daten im Volume `postgres_data` unter `/var/lib/postgresql`. Redis ist Cache. Sessions liegen zusätzlich in PostgreSQL (`cached_db`).
 
 ## Alltag
