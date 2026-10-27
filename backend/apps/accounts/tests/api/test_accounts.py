@@ -4,6 +4,7 @@ import pytest
 from django.core import mail
 from django.test import override_settings
 from django.urls import reverse
+from rest_framework.test import APIClient
 
 from apps.accounts.models import User
 
@@ -15,11 +16,23 @@ LOC_MEM_MAILERS = {
 
 @pytest.fixture(autouse=True)
 def _relax_auth_throttle(settings):
-    rates = dict(settings.REST_FRAMEWORK.get("DEFAULT_THROTTLE_RATES", {}))
-    rates["accounts-auth"] = "10000/minute"
+    from rest_framework.throttling import SimpleRateThrottle
+
+    rates = {
+        "accounts-auth": "10000/minute",
+        "accounts-register": "10000/minute",
+        "accounts-reset": "10000/minute",
+        "accounts-password-change": "10000/minute",
+        "accounts-profile": "10000/minute",
+    }
     settings.REST_FRAMEWORK = {
         **settings.REST_FRAMEWORK,
         "DEFAULT_THROTTLE_RATES": rates,
+    }
+    # DRF kopiert die Raten beim Import; die Klassen-Map muss mitgezogen werden.
+    SimpleRateThrottle.THROTTLE_RATES = {
+        **SimpleRateThrottle.THROTTLE_RATES,
+        **rates,
     }
 
 
@@ -82,7 +95,7 @@ def test_me_requires_a_session_and_profile_updates_normalize_the_country(api_cli
     body = response.json()
     assert body["city"] == "London"
     assert body["country"] == "GB"
-    assert body["email"] == "Ada@example.com"
+    assert body["email"] == "ada@example.com"
     assert body["is_email_verified"] is False
 
 
@@ -107,6 +120,7 @@ def test_login_logout_and_inactive_account(api_client):
         format="json",
     )
     assert wrong.status_code == 401
+    assert wrong.json()["detail"] == "Invalid username or password."
 
     User.objects.filter(username="ada").update(is_active=False)
     inactive = api_client.post(
@@ -114,7 +128,8 @@ def test_login_logout_and_inactive_account(api_client):
         {"username": "ada", "password": PASSWORD},
         format="json",
     )
-    assert inactive.status_code == 403
+    assert inactive.status_code == 401
+    assert inactive.json()["detail"] == "Invalid username or password."
 
 
 @pytest.mark.api
@@ -190,3 +205,64 @@ def test_password_reset_roundtrip_does_not_reveal_unknown_emails(api_client):
         format="json",
     )
     assert reused.status_code == 400
+
+
+@pytest.mark.api
+@pytest.mark.django_db
+@override_settings(MAILERS=LOC_MEM_MAILERS)
+def test_password_reset_invalidates_other_sessions(api_client):
+    first = APIClient()
+    second = APIClient()
+    _register(first)
+    second.force_login(User.objects.get(username="ada"))
+    assert second.get(reverse("accounts:me")).status_code == 200
+
+    if not hasattr(mail, "outbox"):
+        mail.outbox = []
+    else:
+        mail.outbox.clear()
+
+    first.post(reverse("accounts:logout"))
+    first.post(reverse("accounts:password-reset"), {"email": "ada@example.com"}, format="json")
+    body = mail.outbox[0].body
+    uid = re.search(r"uid: (\S+)", body).group(1)
+    token = re.search(r"token: (\S+)", body).group(1)
+
+    confirmed = first.post(
+        reverse("accounts:password-reset-confirm"),
+        {
+            "uid": uid,
+            "token": token,
+            "password": "reset-long-password-99",
+            "password_confirm": "reset-long-password-99",
+        },
+        format="json",
+    )
+    assert confirmed.status_code == 204
+    assert second.get(reverse("accounts:me")).status_code == 401
+
+
+@pytest.mark.api
+@pytest.mark.django_db
+def test_login_requires_csrf_token_when_enforced():
+    user = User.objects.create_user("ada", "ada@example.com", PASSWORD)
+    client = APIClient(enforce_csrf_checks=True)
+
+    denied = client.post(
+        reverse("accounts:login"),
+        {"username": "ada", "password": PASSWORD},
+        format="json",
+    )
+    assert denied.status_code == 403
+
+    csrf = client.get(reverse("accounts:csrf"))
+    assert csrf.status_code == 204
+    token = client.cookies["csrftoken"].value
+    allowed = client.post(
+        reverse("accounts:login"),
+        {"username": "ada", "password": PASSWORD},
+        format="json",
+        HTTP_X_CSRFTOKEN=token,
+    )
+    assert allowed.status_code == 200
+    assert allowed.json()["username"] == user.username

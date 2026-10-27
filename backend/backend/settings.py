@@ -165,7 +165,11 @@ DEFAULT_FROM_EMAIL = os.environ.get('DEFAULT_FROM_EMAIL', f'{PROJECT_NAME}@local
 REST_FRAMEWORK = {
     'DEFAULT_SCHEMA_CLASS': 'drf_spectacular.openapi.AutoSchema',
     'DEFAULT_THROTTLE_RATES': {
-        'accounts-auth': '20/minute',
+        'accounts-auth': '5/minute',
+        'accounts-register': '5/minute',
+        'accounts-reset': '5/minute',
+        'accounts-password-change': '10/minute',
+        'accounts-profile': '30/minute',
     },
 }
 

@@ -6,9 +6,10 @@ from apps.accounts.api.v1.views.auth import (
     PasswordResetView,
     RegisterView,
 )
-from apps.accounts.api.v1.views.profile import MeView
+from apps.accounts.api.v1.views.profile import CsrfView, MeView
 
 __all__ = [
+    "CsrfView",
     "LoginView",
     "LogoutView",
     "MeView",

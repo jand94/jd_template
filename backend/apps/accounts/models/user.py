@@ -2,11 +2,13 @@ from django.contrib.auth.models import AbstractUser as DjangoAbstractUser
 from django.contrib.auth.models import UserManager
 from django.core.exceptions import ValidationError
 from django.db import models
+from django.db.models.functions import Lower
 from django.utils import timezone
 from django.utils.translation import gettext_lazy as _
 
 from apps.accounts.models.choices import Gender, Salutation
 from apps.accounts.models.validators import (
+    validate_avatar,
     validate_iso_country,
     validate_language_code,
     validate_phone_number,
@@ -95,6 +97,7 @@ class AbstractUser(DjangoAbstractUser):
         _("avatar"),
         upload_to="accounts/avatars/%Y/%m/",
         blank=True,
+        validators=[validate_avatar],
     )
     language = models.CharField(
         _("language"),
@@ -213,7 +216,8 @@ class AbstractUser(DjangoAbstractUser):
         return username
 
     def _normalize_identity(self):
-        self.email = self.__class__.objects.normalize_email(self._text(self.email))
+        email = self.__class__.objects.normalize_email(self._text(self.email))
+        self.email = email.casefold()
         self.country = self._text(self.country).upper()
         self.nationality = self._text(self.nationality).upper()
 
@@ -232,5 +236,9 @@ class User(AbstractUser):
             models.CheckConstraint(
                 condition=~models.Q(email=""),
                 name="user_email_present",
+            ),
+            models.UniqueConstraint(
+                Lower("email"),
+                name="user_email_ci_unique",
             ),
         ]

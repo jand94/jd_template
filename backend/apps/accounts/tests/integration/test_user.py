@@ -23,7 +23,7 @@ def test_create_user_stores_profile_and_normalizes_country():
     stored = User.objects.get(username="ada")
 
     assert stored.pk == created.pk
-    assert stored.email == "Ada@example.com"
+    assert stored.email == "ada@example.com"
     assert stored.country == "GB"
     assert stored.check_password("password")
     assert stored.is_staff is False
@@ -39,6 +39,16 @@ def test_email_must_be_unique():
     with pytest.raises(IntegrityError):
         with transaction.atomic():
             User.objects.create_user("ada2", "ada@example.com", "password")
+
+
+@pytest.mark.integration
+@pytest.mark.django_db
+def test_email_must_be_unique_ignoring_case():
+    User.objects.create_user("ada", "ada@example.com", "password")
+
+    with pytest.raises(IntegrityError):
+        with transaction.atomic():
+            User.objects.create_user("ada2", "ADA@EXAMPLE.COM", "password")
 
 
 @pytest.mark.integration

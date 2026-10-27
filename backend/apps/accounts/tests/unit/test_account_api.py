@@ -31,6 +31,7 @@ def test_openapi_schema_lists_account_operations():
     assert schema["info"]["description"] == settings.API_DESCRIPTION
     assert schema["info"]["version"] == settings.API_VERSION
 
+    assert "/accounts/v1/csrf/" in paths
     assert "/accounts/v1/register/" in paths
     assert "/accounts/v1/login/" in paths
     assert "/accounts/v1/logout/" in paths
@@ -40,4 +41,5 @@ def test_openapi_schema_lists_account_operations():
     assert "/accounts/v1/password/reset/confirm/" in paths
     assert paths["/accounts/v1/me/"]["get"]["tags"] == ["Accounts"]
     assert paths["/accounts/v1/me/"]["patch"]["tags"] == ["Accounts"]
+    assert "get" in paths["/accounts/v1/csrf/"]
     assert "post" in paths["/accounts/v1/register/"]

@@ -2,34 +2,7 @@ from rest_framework import serializers
 
 from apps.accounts.models import User
 from apps.accounts.services import update_profile
-
-PROFILE_FIELDS = (
-    "salutation",
-    "title",
-    "first_name",
-    "middle_name",
-    "last_name",
-    "preferred_name",
-    "gender",
-    "pronouns",
-    "date_of_birth",
-    "place_of_birth",
-    "nationality",
-    "phone",
-    "mobile",
-    "website",
-    "street",
-    "house_number",
-    "address_line2",
-    "postal_code",
-    "city",
-    "region",
-    "country",
-    "bio",
-    "avatar",
-    "language",
-    "timezone",
-)
+from apps.accounts.services.accounts import PROFILE_UPDATE_FIELDS
 
 
 class UserSerializer(serializers.ModelSerializer):
@@ -43,7 +16,7 @@ class UserSerializer(serializers.ModelSerializer):
             "id",
             "username",
             "email",
-            *PROFILE_FIELDS,
+            *PROFILE_UPDATE_FIELDS,
             "age",
             "is_email_verified",
             "is_phone_verified",
@@ -62,12 +35,13 @@ class UserSerializer(serializers.ModelSerializer):
 class UserUpdateSerializer(serializers.ModelSerializer):
     class Meta:
         model = User
-        fields = ("email", *PROFILE_FIELDS)
+        fields = ("email", *PROFILE_UPDATE_FIELDS)
 
     def validate_email(self, value):
-        if User.objects.filter(email__iexact=value).exclude(pk=self.instance.pk).exists():
+        normalized = User.objects.normalize_email((value or "").strip()).casefold()
+        if User.objects.filter(email=normalized).exclude(pk=self.instance.pk).exists():
             raise serializers.ValidationError("A user with that email address already exists.")
-        return value
+        return normalized
 
     def update(self, instance, validated_data):
         return update_profile(instance, validated_data)

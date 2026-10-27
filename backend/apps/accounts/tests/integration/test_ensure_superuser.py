@@ -18,7 +18,7 @@ def test_ensure_superuser_creates_an_active_superuser(monkeypatch):
     call_command("ensure_superuser")
 
     user = User.objects.get(username="root")
-    assert user.email == "Root@example.com"
+    assert user.email == "root@example.com"
     assert user.is_staff is True
     assert user.is_superuser is True
     assert user.is_active is True

@@ -86,7 +86,7 @@ def test_clean_normalizes_email_and_country_codes():
 
     user.clean()
 
-    assert user.email == "Ada@example.com"
+    assert user.email == "ada@example.com"
     assert user.country == "DE"
     assert user.nationality == "GB"
 

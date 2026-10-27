@@ -27,6 +27,9 @@ class RegisterSerializer(serializers.ModelSerializer):
             "last_name": {"required": False, "allow_blank": True},
         }
 
+    def validate_email(self, value):
+        return User.objects.normalize_email((value or "").strip()).casefold()
+
     def validate(self, attrs):
         if attrs["password"] != attrs["password_confirm"]:
             raise serializers.ValidationError(
@@ -66,6 +69,9 @@ class PasswordChangeSerializer(serializers.Serializer):
 
 class PasswordResetSerializer(serializers.Serializer):
     email = serializers.EmailField()
+
+    def validate_email(self, value):
+        return User.objects.normalize_email((value or "").strip()).casefold()
 
 
 class PasswordResetConfirmSerializer(serializers.Serializer):

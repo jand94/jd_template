@@ -36,7 +36,7 @@ def test_creation_form_stores_username_email_and_password():
     assert form.is_valid(), form.errors
     user = form.save()
 
-    assert user.email == "Ada@example.com"
+    assert user.email == "ada@example.com"
     assert user.check_password("a-long-password-99")
     assert user.is_staff is False
 

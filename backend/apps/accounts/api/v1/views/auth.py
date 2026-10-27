@@ -2,13 +2,19 @@ from django.contrib.auth import logout, update_session_auth_hash
 from django.core.exceptions import ValidationError as DjangoValidationError
 from drf_spectacular.utils import OpenApiResponse
 from rest_framework import status
-from rest_framework.exceptions import AuthenticationFailed, PermissionDenied, ValidationError
+from rest_framework.exceptions import AuthenticationFailed, ValidationError
 from rest_framework.permissions import AllowAny
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
 from apps.accounts.api.v1.authentication import AccountSessionAuthentication
-from apps.accounts.api.v1.permissions import AccountsAuthThrottle, IsActiveAccount
+from apps.accounts.api.v1.permissions import (
+    AccountsAuthThrottle,
+    AccountsPasswordChangeThrottle,
+    AccountsRegisterThrottle,
+    AccountsResetThrottle,
+    IsActiveAccount,
+)
 from apps.accounts.api.v1.schema import accounts_schema
 from apps.accounts.api.v1.serializers import (
     LoginSerializer,
@@ -18,7 +24,7 @@ from apps.accounts.api.v1.serializers import (
     RegisterSerializer,
     UserSerializer,
 )
-from apps.accounts.exceptions import InactiveAccount, InvalidCredentials, InvalidPasswordReset
+from apps.accounts.exceptions import InvalidCredentials, InvalidPasswordReset
 from apps.accounts.services import (
     authenticate_user,
     change_password,
@@ -32,10 +38,11 @@ UNAUTHORIZED = OpenApiResponse(description="Authentication is required or the cr
 class AccountAuthView(APIView):
     authentication_classes = [AccountSessionAuthentication]
     permission_classes = [AllowAny]
-    throttle_classes = [AccountsAuthThrottle]
 
 
 class RegisterView(AccountAuthView):
+    throttle_classes = [AccountsRegisterThrottle]
+
     @accounts_schema(
         summary="Register an account",
         description="Creates an active account, accepts the terms, and starts a session.",
@@ -45,7 +52,10 @@ class RegisterView(AccountAuthView):
     def post(self, request):
         serializer = RegisterSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
-        user = serializer.save()
+        try:
+            user = serializer.save()
+        except DjangoValidationError as exc:
+            raise ValidationError(exc.message_dict if hasattr(exc, "message_dict") else exc.messages) from exc
         authenticate_user(
             username=user.get_username(),
             password=serializer.validated_data["password"],
@@ -55,11 +65,16 @@ class RegisterView(AccountAuthView):
 
 
 class LoginView(AccountAuthView):
+    throttle_classes = [AccountsAuthThrottle]
+
     @accounts_schema(
         summary="Log in",
-        description="Checks the password and starts a session. Inactive accounts are rejected.",
+        description=(
+            "Checks the password and starts a session. Unknown usernames, wrong "
+            "passwords, and inactive accounts all receive the same 401 response."
+        ),
         request=LoginSerializer,
-        responses={200: UserSerializer, 400: AUTH_ERROR, 401: UNAUTHORIZED, 403: UNAUTHORIZED},
+        responses={200: UserSerializer, 400: AUTH_ERROR, 401: UNAUTHORIZED},
     )
     def post(self, request):
         serializer = LoginSerializer(data=request.data)
@@ -68,8 +83,6 @@ class LoginView(AccountAuthView):
             user = authenticate_user(request=request, **serializer.validated_data)
         except InvalidCredentials as exc:
             raise AuthenticationFailed("Invalid username or password.") from exc
-        except InactiveAccount as exc:
-            raise PermissionDenied("This account is inactive.") from exc
         return Response(UserSerializer(user).data)
 
 
@@ -89,6 +102,7 @@ class LogoutView(AccountAuthView):
 
 class PasswordChangeView(AccountAuthView):
     permission_classes = [IsActiveAccount]
+    throttle_classes = [AccountsPasswordChangeThrottle]
 
     @accounts_schema(
         summary="Change password",
@@ -113,6 +127,8 @@ class PasswordChangeView(AccountAuthView):
 
 
 class PasswordResetView(AccountAuthView):
+    throttle_classes = [AccountsResetThrottle]
+
     @accounts_schema(
         summary="Request a password reset",
         description="Always responds the same way, whether or not the email belongs to an account.",
@@ -127,6 +143,8 @@ class PasswordResetView(AccountAuthView):
 
 
 class PasswordResetConfirmView(AccountAuthView):
+    throttle_classes = [AccountsResetThrottle]
+
     @accounts_schema(
         summary="Confirm a password reset",
         request=PasswordResetConfirmSerializer,

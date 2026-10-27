@@ -14,10 +14,28 @@ class IsActiveAccount(BasePermission):
         return bool(user.is_active)
 
 
-class AccountsAuthThrottle(ScopedRateThrottle):
-    scope = "accounts-auth"
-
+class _AccountsScopedThrottle(ScopedRateThrottle):
     def allow_request(self, request, view):
         if getattr(view, self.scope_attr, None) is None:
             view.throttle_scope = self.scope
         return super().allow_request(request, view)
+
+
+class AccountsAuthThrottle(_AccountsScopedThrottle):
+    scope = "accounts-auth"
+
+
+class AccountsRegisterThrottle(_AccountsScopedThrottle):
+    scope = "accounts-register"
+
+
+class AccountsResetThrottle(_AccountsScopedThrottle):
+    scope = "accounts-reset"
+
+
+class AccountsPasswordChangeThrottle(_AccountsScopedThrottle):
+    scope = "accounts-password-change"
+
+
+class AccountsProfileThrottle(_AccountsScopedThrottle):
+    scope = "accounts-profile"
