@@ -156,13 +156,25 @@ MAILERS = {
     },
 }
 
+PROJECT_NAME = os.environ.get('PROJECT_NAME', 'jd_Template')
+API_TITLE = os.environ.get('API_TITLE', f'{PROJECT_NAME} API')
+API_DESCRIPTION = os.environ.get('API_DESCRIPTION', f'HTTP-API für {PROJECT_NAME}')
+API_VERSION = os.environ.get('API_VERSION', '0.1.0')
+DEFAULT_FROM_EMAIL = os.environ.get('DEFAULT_FROM_EMAIL', f'{PROJECT_NAME}@localhost')
+
 REST_FRAMEWORK = {
     'DEFAULT_SCHEMA_CLASS': 'drf_spectacular.openapi.AutoSchema',
+    'DEFAULT_THROTTLE_RATES': {
+        'accounts-auth': '20/minute',
+    },
 }
 
 SPECTACULAR_SETTINGS = {
-    'TITLE': 'jd_pmgt API',
-    'DESCRIPTION': 'HTTP-API für jd_pmgt',
-    'VERSION': '0.1.0',
+    'TITLE': API_TITLE,
+    'DESCRIPTION': API_DESCRIPTION,
+    'VERSION': API_VERSION,
     'SERVE_INCLUDE_SCHEMA': False,
+    'TAGS': [
+        {'name': 'Accounts', 'description': 'Registrierung, Sitzung und Profil des Benutzerkontos.'},
+    ],
 }

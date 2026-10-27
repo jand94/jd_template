@@ -167,11 +167,13 @@ def test_personal_fields_reject_invalid_values():
 
 @pytest.mark.unit
 def test_admin_exposes_profile_contact_and_address():
-    fields = [
-        field
-        for _label, options in AccountUserAdmin.fieldsets
-        for field in options["fields"]
-    ]
+    fields = []
+    for _label, options in AccountUserAdmin.fieldsets:
+        for field in options["fields"]:
+            if isinstance(field, tuple):
+                fields.extend(field)
+            else:
+                fields.append(field)
     add_fields = AccountUserAdmin.add_fieldsets[0][1]["fields"]
 
     assert {"street", "city", "date_of_birth", "phone", "language"} <= set(fields)
