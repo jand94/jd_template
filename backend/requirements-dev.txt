@@ -7,4 +7,4 @@ factory_boy==3.3.3
 freezegun==1.5.5
 hypothesis==6.151.9
 locust==2.47.0
-ruff==0.14.14
+ruff==0.17.2
