@@ -13,6 +13,10 @@ ifeq (create_app,$(firstword $(MAKECMDGOALS)))
   APP_ARGS := $(wordlist 2,$(words $(MAKECMDGOALS)),$(MAKECMDGOALS))
 endif
 
+ifeq (create_feature,$(firstword $(MAKECMDGOALS)))
+  FEATURE_ARGS := $(wordlist 2,$(words $(MAKECMDGOALS)),$(MAKECMDGOALS))
+endif
+
 ifeq ($(firstword $(MAKECMDGOALS)),$(filter $(firstword $(MAKECMDGOALS)),$(ARG_VERBS)))
   ARGS := $(wordlist 2,$(words $(MAKECMDGOALS)),$(MAKECMDGOALS))
 endif
@@ -20,8 +24,8 @@ endif
 .PHONY: help dev up down restart start stop build rebuild logs ps shell \
 	migrate makemigrations createsuperuser manage check \
 	test test-unit test-integration test-api loadtest \
-	lint install-backend install-frontend \
-	psql redis-cli urls config pull destroy create_app clean-pyc
+	lint typecheck install-backend install-frontend \
+	psql redis-cli urls config pull destroy create_app create_feature clean-pyc
 
 ##@ Hilfe
 
@@ -136,6 +140,9 @@ check: ## Django-Systemcheck
 create_app: ## App anlegen. make create_app <appname>
 	python3 scripts/create_app.py $(APP_ARGS)
 
+create_feature: ## Frontend-Feature anlegen. make create_feature <name>
+	python3 scripts/create_feature.py $(FEATURE_ARGS)
+
 ##@ Tests
 
 test: ## pytest mit Abdeckung im Backend-Container
@@ -161,6 +168,9 @@ loadtest: ## Locust, Standard 100 Benutzer für 30s. LOCUST_USERS=10 make loadte
 lint: ## ESLint im Frontend-Container
 	$(COMPOSE) exec -T frontend npm run lint
 
+typecheck: ## TypeScript im Frontend-Container
+	$(COMPOSE) exec -T frontend npx tsc --noEmit --pretty false
+
 install-backend: ## Python-Abhängigkeiten im Backend-Container installieren
 	$(COMPOSE) exec -T backend pip install --no-cache-dir -r requirements-dev.txt
 
@@ -173,6 +183,12 @@ clean-pyc: ## Python-Bytecode unter backend/ entfernen
 ifeq (create_app,$(firstword $(MAKECMDGOALS)))
   ifneq ($(APP_ARGS),)
     $(eval $(APP_ARGS):;@:)
+  endif
+endif
+
+ifeq (create_feature,$(firstword $(MAKECMDGOALS)))
+  ifneq ($(FEATURE_ARGS),)
+    $(eval $(FEATURE_ARGS):;@:)
   endif
 endif
 

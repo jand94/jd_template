@@ -29,4 +29,4 @@ make down
 
 `make build` und `make build backend` bauen die Images von Backend und Frontend. `make rebuild` baut ohne Cache und startet danach. `make destroy` entfernt die Volumes, also auch die Datenbank.
 
-`make migrate`, `make makemigrations <app>`, `make createsuperuser`, `make shell`, `make psql` und `make redis-cli` arbeiten im laufenden Stack. Die vollständige Liste liefert `make help`.
+`make migrate`, `make makemigrations <app>`, `make createsuperuser`, `make shell`, `make psql` und `make redis-cli` arbeiten im laufenden Stack. `make test` prüft das Backend, `make typecheck` und `make lint` das Frontend. Die vollständige Liste liefert `make help`.

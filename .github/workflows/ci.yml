@@ -1,0 +1,47 @@
+name: CI
+
+on:
+  push:
+  pull_request:
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Stack starten
+        run: |
+          cp docker/.env.example docker/.env
+          make dev
+
+      - name: Auf das Backend warten
+        run: |
+          for _ in $(seq 1 40); do
+            if docker compose --env-file docker/.env -f docker/compose.yml exec -T backend python manage.py check; then
+              exit 0
+            fi
+            sleep 3
+          done
+          docker compose --env-file docker/.env -f docker/compose.yml logs backend
+          exit 1
+
+      - name: Auf das Frontend warten
+        run: |
+          for _ in $(seq 1 40); do
+            if docker compose --env-file docker/.env -f docker/compose.yml exec -T frontend test -x node_modules/.bin/tsc; then
+              exit 0
+            fi
+            sleep 3
+          done
+          docker compose --env-file docker/.env -f docker/compose.yml logs frontend
+          exit 1
+
+      - name: Tests
+        run: make test
+
+      - name: Typecheck
+        run: make typecheck
+
+      - name: Lint
+        run: make lint

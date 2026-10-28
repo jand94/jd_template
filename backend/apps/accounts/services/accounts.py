@@ -79,7 +79,9 @@ def update_profile(user, data):
         )
 
     old_avatar = user.avatar
-    replace_avatar = "avatar" in data and data["avatar"] != old_avatar
+    clear_avatar = "avatar" in data and not data.get("avatar")
+    new_avatar = None if clear_avatar else data.get("avatar")
+    replace_avatar = bool(new_avatar) and new_avatar != old_avatar
 
     if "email" in data and data["email"] != user.email:
         user.email_verified_at = None
@@ -90,11 +92,15 @@ def update_profile(user, data):
         user.phone_verified_at = None
 
     for field, value in data.items():
+        if field == "avatar" and not value:
+            continue
         setattr(user, field, value)
     user.full_clean()
     user.save()
 
-    if replace_avatar and old_avatar:
+    if clear_avatar and old_avatar:
+        old_avatar.delete(save=True)
+    elif replace_avatar and old_avatar:
         old_avatar.delete(save=False)
     return user
 

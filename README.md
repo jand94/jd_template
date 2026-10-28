@@ -56,7 +56,13 @@ Fachlichkeit liegt in `backend/apps/<app>`. Eine neue App:
 make create_app <appname>
 ```
 
-Die App wird registriert und unter `/<appname>/v1/` eingehängt. Die Form der Apps steht in [docs/rules/ordnerstruktur.md](docs/rules/ordnerstruktur.md).
+Die App wird registriert und unter `/<appname>/v1/` eingehängt. Ein Frontend-Modul:
+
+```bash
+make create_feature <name>
+```
+
+Es liegt unter `frontend/src/features/<name>`, ist über `@/features/<name>` erreichbar und hat die Route `/<name>`. Die Form steht in [docs/rules/ordnerstruktur.md](docs/rules/ordnerstruktur.md).
 
 ## Tests
 

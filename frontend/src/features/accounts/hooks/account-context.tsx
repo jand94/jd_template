@@ -29,19 +29,34 @@ export function AccountProvider({ children }: { children: ReactNode }) {
 
   useEffect(() => {
     let cancelled = false;
-    readCurrentUser()
-      .then((next) => {
-        if (cancelled) {
-          return;
-        }
-        setUserState(next);
-        setStatus(next ? "authenticated" : "anonymous");
-      })
-      .catch(() => {
+
+    function apply(next: Account | null) {
+      if (cancelled) {
+        return;
+      }
+      setUserState(next);
+      setStatus(next ? "authenticated" : "anonymous");
+    }
+
+    async function load() {
+      try {
+        apply(await readCurrentUser());
+      } catch {
         // Sitzung bleibt unbestätigt. Geschützte Seiten rendern weiter, solange das Cookie gilt.
-      });
+      }
+    }
+
+    function onVisible() {
+      if (document.visibilityState === "visible") {
+        void load();
+      }
+    }
+
+    void load();
+    document.addEventListener("visibilitychange", onVisible);
     return () => {
       cancelled = true;
+      document.removeEventListener("visibilitychange", onVisible);
     };
   }, []);
 

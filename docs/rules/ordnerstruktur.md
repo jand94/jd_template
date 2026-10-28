@@ -98,4 +98,6 @@ frontend/src/
   config/
 ```
 
-Seiten importieren ein Feature nur über `@/features/<feature>`. `components/` und `lib/` importieren keine Features. Features importieren keine anderen Features. Server Components sind der Default. `"use client"` steht nur in der Datei, die Zustand oder Browser-APIs braucht. Dateien, die nur zu einer Route gehören, liegen in `app/.../_components`. Eine neue API-Version ist ein Geschwister unter `features/<feature>/api`.
+Seiten importieren ein Feature nur über `@/features/<feature>`. `components/`, `lib/` und `config/` importieren keine Features. Features importieren keine anderen Features. ESLint prüft das mit `features/boundaries`. Server Components sind der Default. `"use client"` steht nur in der Datei, die Zustand oder Browser-APIs braucht. Dateien, die nur zu einer Route gehören, liegen in `app/.../_components`. Eine neue API-Version ist ein Geschwister unter `features/<feature>/api`.
+
+`make create_feature <name>` legt das Modul, die öffentliche `index.ts` und die Route `app/(app)/<name>` an. HTTP-Aufrufe laufen über `createApiClient` aus `src/lib/api.ts`. Der Client setzt CSRF, liest Fehlerfelder und spricht `/<name>/v1/`.

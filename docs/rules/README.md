@@ -8,4 +8,4 @@ Verbindliche Basis für dieses Repository.
 | [testing.md](testing.md) | Testarten, Werkzeuge, Ablage, Befehle |
 | [dev-stack.md](dev-stack.md) | Compose, Ports, Make-Ziele |
 
-Neue Apps legt `make create_app <appname>` an. `make help` listet die Stack-Befehle.
+Neue Apps legt `make create_app <appname>` an, neue Frontend-Module `make create_feature <name>`. `make help` listet die Stack-Befehle.

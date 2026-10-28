@@ -29,13 +29,15 @@ src/
   config/brand.ts           # PROJECT_NAME und API-Namen aus der Umgebung
 ```
 
+- `make create_feature <name>` legt das Modul und die Route `/{name}` an.
+- HTTP-Aufrufe laufen über `createApiClient` aus `@/lib/api`.
 - Seiten importieren ein Feature nur über `@/features/<feature>`.
 
 ```tsx
 import { LoginForm } from "@/features/accounts";
 ```
 
-- `components/` und `lib/` importieren keine Features. Features importieren keine anderen Features.
+- `components/`, `lib/` und `config/` importieren keine Features. Features importieren keine anderen Features. ESLint-Regel `features/boundaries`.
 - Server Components sind der Default. `"use client"` steht nur in der Datei, die Zustand oder Browser-APIs braucht.
 - Routenlokale Dateien liegen in `app/.../_components`. Ordner mit Unterstrich nimmt Next.js aus dem Routing.
 - Eine neue API-Version ist ein Geschwister unter `features/<feature>/api`, analog zu `backend/apps/<app>/api`.

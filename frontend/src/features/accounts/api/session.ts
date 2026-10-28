@@ -1,119 +1,85 @@
+import { ApiError, createApiClient } from "@/lib/api";
+
+export { ApiError };
+
 export type Account = {
   id: number;
   username: string;
   email: string;
+  salutation: string;
+  title: string;
   first_name: string;
+  middle_name: string;
   last_name: string;
+  preferred_name: string;
+  gender: string;
+  pronouns: string;
+  date_of_birth: string | null;
+  place_of_birth: string;
+  nationality: string;
+  phone: string;
+  mobile: string;
+  website: string;
+  street: string;
+  house_number: string;
+  address_line2: string;
+  postal_code: string;
+  city: string;
+  region: string;
+  country: string;
+  bio: string;
+  avatar: string | null;
+  language: string;
+  timezone: string;
+  age: number | null;
+  is_email_verified: boolean;
+  is_phone_verified: boolean;
+  email_verified_at: string | null;
+  phone_verified_at: string | null;
+  terms_accepted_at: string | null;
+  date_joined: string;
+  last_login: string | null;
+  is_active: boolean;
+  is_staff: boolean;
+  is_superuser: boolean;
 };
 
-export class ApiError extends Error {
-  readonly status: number;
-  readonly fields: Record<string, string[]>;
-
-  constructor(message: string, status: number, fields: Record<string, string[]> = {}) {
-    super(message);
-    this.status = status;
-    this.fields = fields;
-  }
-}
-
-const detailMessages: Record<string, string> = {
-  "Invalid username or password.": "Benutzername oder Passwort ist falsch.",
+export type ProfileInput = {
+  email: string;
+  salutation: string;
+  title: string;
+  first_name: string;
+  middle_name: string;
+  last_name: string;
+  preferred_name: string;
+  gender: string;
+  pronouns: string;
+  date_of_birth: string | null;
+  place_of_birth: string;
+  nationality: string;
+  phone: string;
+  mobile: string;
+  website: string;
+  street: string;
+  house_number: string;
+  address_line2: string;
+  postal_code: string;
+  city: string;
+  region: string;
+  country: string;
+  bio: string;
+  language: string;
+  timezone: string;
 };
 
-function readCookie(name: string): string | null {
-  const prefix = `${name}=`;
-  for (const part of document.cookie.split(";")) {
-    const cookie = part.trim();
-    if (cookie.startsWith(prefix)) {
-      return decodeURIComponent(cookie.slice(prefix.length));
-    }
-  }
-  return null;
-}
-
-async function refreshCsrf(): Promise<string> {
-  const response = await fetch("/accounts/v1/csrf", {
-    credentials: "same-origin",
-    cache: "no-store",
-  });
-  if (!response.ok && response.status !== 204) {
-    throw new ApiError("Die Sitzung konnte nicht vorbereitet werden.", response.status);
-  }
-  const token = readCookie("csrftoken");
-  if (!token) {
-    throw new ApiError("Die Sitzung konnte nicht vorbereitet werden.", response.status);
-  }
-  return token;
-}
-
-function readFields(data: unknown): Record<string, string[]> {
-  if (!data || typeof data !== "object" || Array.isArray(data)) {
-    return {};
-  }
-
-  const fields: Record<string, string[]> = {};
-  for (const [key, value] of Object.entries(data)) {
-    if (key === "detail") {
-      continue;
-    }
-    if (typeof value === "string") {
-      fields[key] = [value];
-    } else if (Array.isArray(value)) {
-      fields[key] = value.map(String);
-    }
-  }
-  return fields;
-}
-
-async function parse<T>(response: Response): Promise<T> {
-  if (response.status === 204) {
-    return undefined as T;
-  }
-
-  const data: unknown = await response.json().catch(() => null);
-  if (response.ok) {
-    return data as T;
-  }
-
-  const fields = readFields(data);
-  const detail =
-    data && typeof data === "object" && "detail" in data && typeof data.detail === "string"
-      ? data.detail
-      : "";
-  const message =
-    detailMessages[detail] ||
-    detail ||
-    (response.status === 403
-      ? "Die Anfrage wurde abgelehnt. Bitte erneut versuchen."
-      : "Die Anfrage ist fehlgeschlagen.");
-  throw new ApiError(message, response.status, fields);
-}
-
-async function send(path: string, method: string, body?: unknown): Promise<Response> {
-  const headers = new Headers({ Accept: "application/json" });
-  if (body !== undefined) {
-    headers.set("Content-Type", "application/json");
-  }
-  if (method !== "GET" && method !== "HEAD") {
-    headers.set("X-CSRFToken", await refreshCsrf());
-  }
-
-  return fetch(`/accounts/v1${path}`, {
-    method,
-    credentials: "same-origin",
-    cache: "no-store",
-    headers,
-    body: body === undefined ? undefined : JSON.stringify(body),
-  });
-}
+const api = createApiClient("/accounts/v1", {
+  detailMessages: {
+    "Invalid username or password.": "Benutzername oder Passwort ist falsch.",
+  },
+});
 
 export async function currentUser(): Promise<Account | null> {
-  const response = await fetch("/accounts/v1/me", {
-    credentials: "same-origin",
-    cache: "no-store",
-    headers: { Accept: "application/json" },
-  });
+  const response = await api.send("/me", "GET");
   if (response.status === 401 || response.status === 403) {
     return null;
   }
@@ -124,8 +90,7 @@ export async function currentUser(): Promise<Account | null> {
 }
 
 export async function login(username: string, password: string): Promise<Account> {
-  const response = await send("/login", "POST", { username, password });
-  return parse<Account>(response);
+  return api.parse<Account>(await api.send("/login", "POST", { username, password }));
 }
 
 export async function register(input: {
@@ -137,22 +102,25 @@ export async function register(input: {
   last_name: string;
   terms_accepted: boolean;
 }): Promise<Account> {
-  const response = await send("/register", "POST", input);
-  return parse<Account>(response);
+  return api.parse<Account>(await api.send("/register", "POST", input));
 }
 
 export async function logout(): Promise<void> {
-  const response = await send("/logout", "POST");
-  await parse<void>(response);
+  await api.parse<void>(await api.send("/logout", "POST"));
 }
 
-export async function updateProfile(input: {
-  email: string;
-  first_name: string;
-  last_name: string;
-}): Promise<Account> {
-  const response = await send("/me", "PATCH", input);
-  return parse<Account>(response);
+export async function updateProfile(input: ProfileInput): Promise<Account> {
+  return api.parse<Account>(await api.send("/me", "PATCH", input));
+}
+
+export async function uploadAvatar(file: File): Promise<Account> {
+  const body = new FormData();
+  body.append("avatar", file);
+  return api.parse<Account>(await api.sendForm("/me", body, "PATCH"));
+}
+
+export async function removeAvatar(): Promise<Account> {
+  return api.parse<Account>(await api.send("/me", "PATCH", { avatar: null }));
 }
 
 export async function changePassword(input: {
@@ -160,13 +128,11 @@ export async function changePassword(input: {
   password: string;
   password_confirm: string;
 }): Promise<void> {
-  const response = await send("/password/change", "POST", input);
-  await parse<void>(response);
+  await api.parse<void>(await api.send("/password/change", "POST", input));
 }
 
 export async function requestPasswordReset(email: string): Promise<void> {
-  const response = await send("/password/reset", "POST", { email });
-  await parse<void>(response);
+  await api.parse<void>(await api.send("/password/reset", "POST", { email }));
 }
 
 export function fieldMessage(error: unknown, field: string): string | undefined {
@@ -188,6 +154,24 @@ export function fieldMessage(error: unknown, field: string): string | undefined 
   }
   if (message === "A user with that email address already exists.") {
     return "Diese E-Mail wird bereits verwendet.";
+  }
+  if (message === "Enter a two-letter ISO 3166-1 country code.") {
+    return "Bitte einen zweistelligen Ländercode angeben, zum Beispiel DE.";
+  }
+  if (message === "Enter a phone number with digits, spaces, and an optional leading +.") {
+    return "Bitte eine Telefonnummer mit Ziffern, Leerzeichen und optionalem + angeben.";
+  }
+  if (message.startsWith("Enter a language code")) {
+    return "Bitte einen Sprachcode angeben, zum Beispiel de.";
+  }
+  if (message.startsWith("Enter a valid IANA time zone")) {
+    return "Bitte eine Zeitzone angeben, zum Beispiel Europe/Berlin.";
+  }
+  if (message === "Date of birth cannot be in the future.") {
+    return "Das Geburtsdatum darf nicht in der Zukunft liegen.";
+  }
+  if (message.includes("JPEG") || message.includes("WebP") || message.startsWith("Avatar ")) {
+    return "Bitte ein JPEG-, PNG- oder WebP-Bild bis 2 MB hochladen.";
   }
   return message;
 }

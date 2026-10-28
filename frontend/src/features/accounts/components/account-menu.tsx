@@ -6,7 +6,9 @@ import { ChevronDown, CircleUser, LogIn, LogOut, UserPlus, UserRound } from "luc
 import { useEffect, useId, useRef, useState } from "react";
 import { Icon } from "@/components/ui/icon";
 import { focusRing, pressable } from "@/components/ui/styles";
+import { AccountAvatar } from "@/features/accounts/components/account-avatar";
 import { useAccount } from "@/features/accounts/hooks/account-context";
+import { accountDisplayName } from "@/features/accounts/profile";
 
 const itemClass = `flex min-h-11 w-full items-center gap-2 rounded-lg px-3 text-left text-sm font-medium text-foreground hover:bg-muted ${pressable} ${focusRing}`;
 
@@ -60,7 +62,7 @@ export function AccountMenu() {
     return <span className="inline-flex h-11 w-20" aria-hidden="true" />;
   }
 
-  const label = account.user ? account.user.username : "Konto";
+  const label = account.user ? accountDisplayName(account.user) : "Konto";
 
   return (
     <div ref={rootRef} className="relative">
@@ -73,7 +75,11 @@ export function AccountMenu() {
         aria-controls={menuId}
         onClick={() => setOpenPath(open ? null : pathname)}
       >
-        <Icon icon={CircleUser} className="size-4 shrink-0" />
+        {account.user ? (
+          <AccountAvatar key={account.user.avatar ?? "none"} user={account.user} className="size-7 shrink-0 text-xs" />
+        ) : (
+          <Icon icon={CircleUser} className="size-4 shrink-0" />
+        )}
         <span className="truncate">{label}</span>
         <Icon
           icon={ChevronDown}

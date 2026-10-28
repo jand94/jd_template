@@ -1,9 +1,12 @@
 import re
+from io import BytesIO
 
 import pytest
 from django.core import mail
+from django.core.files.uploadedfile import SimpleUploadedFile
 from django.test import override_settings
 from django.urls import reverse
+from PIL import Image
 from rest_framework.test import APIClient
 
 from apps.accounts.models import User
@@ -266,3 +269,31 @@ def test_login_requires_csrf_token_when_enforced():
     )
     assert allowed.status_code == 200
     assert allowed.json()["username"] == user.username
+
+
+def _png_bytes():
+    buffer = BytesIO()
+    Image.new("RGB", (8, 8), color=(255, 0, 0)).save(buffer, format="PNG")
+    return buffer.getvalue()
+
+
+@pytest.mark.api
+@pytest.mark.django_db
+def test_profile_avatar_can_be_uploaded_and_cleared(api_client):
+    _register(api_client)
+    upload = SimpleUploadedFile("ok.png", _png_bytes(), content_type="image/png")
+
+    uploaded = api_client.patch(
+        reverse("accounts:me"),
+        {"avatar": upload},
+        format="multipart",
+    )
+
+    assert uploaded.status_code == 200
+    assert "/accounts/avatars/" in uploaded.json()["avatar"]
+
+    cleared = api_client.patch(reverse("accounts:me"), {"avatar": None}, format="json")
+
+    assert cleared.status_code == 200
+    assert cleared.json()["avatar"] is None
+    assert User.objects.get(username="ada").avatar.name == ""

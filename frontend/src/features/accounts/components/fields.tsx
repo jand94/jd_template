@@ -13,6 +13,7 @@ type TextFieldProps = {
   type?: string;
   autoComplete?: string;
   error?: string;
+  hint?: string;
   required?: boolean;
   icon?: LucideIcon;
 } & Pick<InputHTMLAttributes<HTMLInputElement>, "value" | "onChange">;
@@ -23,6 +24,7 @@ export function TextField({
   type = "text",
   autoComplete,
   error,
+  hint,
   required,
   icon,
   value,
@@ -30,6 +32,7 @@ export function TextField({
 }: TextFieldProps) {
   const id = useId();
   const errorId = `${id}-error`;
+  const hintId = `${id}-hint`;
 
   return (
     <div className="flex flex-col gap-2">
@@ -50,11 +53,16 @@ export function TextField({
           required={required}
           value={value}
           onChange={onChange}
-          aria-invalid={error ? true : undefined}
-          aria-describedby={error ? errorId : undefined}
-          className={`${control} ${icon ? "pr-3 pl-10" : "px-3"}`}
-        />
+        aria-invalid={error ? true : undefined}
+        aria-describedby={describedBy(error ? errorId : undefined, hint ? hintId : undefined)}
+        className={`${control} ${icon ? "pr-3 pl-10" : "px-3"}`}
+      />
       </div>
+      {hint ? (
+        <p id={hintId} className="text-sm text-muted-foreground">
+          {hint}
+        </p>
+      ) : null}
       {error ? (
         <p id={errorId} className="text-sm text-danger">
           {error}
@@ -62,6 +70,108 @@ export function TextField({
       ) : null}
     </div>
   );
+}
+
+type Choice = { value: string; label: string };
+
+export function SelectField({
+  label,
+  name,
+  value,
+  onChange,
+  options,
+  error,
+}: {
+  label: string;
+  name: string;
+  value: string;
+  onChange: (value: string) => void;
+  options: Choice[];
+  error?: string;
+}) {
+  const id = useId();
+  const errorId = `${id}-error`;
+
+  return (
+    <div className="flex flex-col gap-2">
+      <label htmlFor={id} className="text-sm font-medium">
+        {label}
+      </label>
+      <select
+        id={id}
+        name={name}
+        value={value}
+        onChange={(event) => onChange(event.target.value)}
+        aria-invalid={error ? true : undefined}
+        aria-describedby={error ? errorId : undefined}
+        className={`${control} px-3`}
+      >
+        {options.map((option) => (
+          <option key={option.value || "empty"} value={option.value}>
+            {option.label}
+          </option>
+        ))}
+      </select>
+      {error ? (
+        <p id={errorId} className="text-sm text-danger">
+          {error}
+        </p>
+      ) : null}
+    </div>
+  );
+}
+
+export function TextArea({
+  label,
+  name,
+  value,
+  onChange,
+  error,
+  hint,
+}: {
+  label: string;
+  name: string;
+  value: string;
+  onChange: (value: string) => void;
+  error?: string;
+  hint?: string;
+}) {
+  const id = useId();
+  const errorId = `${id}-error`;
+  const hintId = `${id}-hint`;
+
+  return (
+    <div className="flex flex-col gap-2">
+      <label htmlFor={id} className="text-sm font-medium">
+        {label}
+      </label>
+      <textarea
+        id={id}
+        name={name}
+        value={value}
+        onChange={(event) => onChange(event.target.value)}
+        rows={4}
+        aria-invalid={error ? true : undefined}
+        aria-describedby={describedBy(error ? errorId : undefined, hint ? hintId : undefined)}
+        className={`${control} h-auto min-h-28 px-3 py-2`}
+      />
+      {hint ? (
+        <p id={hintId} className="text-sm text-muted-foreground">
+          {hint}
+        </p>
+      ) : null}
+      {error ? (
+        <p id={errorId} className="text-sm text-danger">
+          {error}
+        </p>
+      ) : null}
+    </div>
+  );
+}
+
+function describedBy(...ids: Array<string | undefined>): string | undefined {
+  const value = ids.filter(Boolean).join(" ");
+  return value || undefined;
 }
 
 export function FormError({ children }: { children: ReactNode }) {
