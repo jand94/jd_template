@@ -219,9 +219,7 @@ class AccountUserAdmin(UserAdmin):
         if skipped_self:
             self.message_user(
                 request,
-                _(
-                    "Deactivated %(count)s users. Your own account was left active."
-                )
+                _("Deactivated %(count)s users. Your own account was left active.")
                 % {"count": updated},
                 messages.WARNING,
             )

@@ -3,7 +3,7 @@ function configured(value: string | undefined, fallback: string): string {
   return trimmed ? trimmed : fallback;
 }
 
-const projectName = configured(process.env.PROJECT_NAME, "jd_Template");
+const projectName = configured(process.env.PROJECT_NAME, "jd_template");
 
 export const brand = {
   projectName,

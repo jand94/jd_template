@@ -3,7 +3,7 @@
 ## Repository
 
 ```text
-jd_pmgt/
+jd_template/
   backend/                 Django-Projekt
     backend/               Grundkonfiguration (settings, urls, wsgi, asgi)
     apps/<app>/            Fach-Apps

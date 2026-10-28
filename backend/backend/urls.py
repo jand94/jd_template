@@ -3,19 +3,32 @@ from django.conf.urls.static import static
 from django.contrib import admin
 from django.urls import include, path
 from drf_spectacular.views import SpectacularAPIView, SpectacularSwaggerView
+from rest_framework.permissions import AllowAny
 
 admin.site.site_header = settings.PROJECT_NAME
 admin.site.site_title = settings.PROJECT_NAME
 admin.site.index_title = settings.PROJECT_NAME
 
 urlpatterns = [
-    path('admin/', admin.site.urls),
-    path('api/schema/', SpectacularAPIView.as_view(), name='schema'),
-    path('api/docs/', SpectacularSwaggerView.as_view(url_name='schema'), name='swagger-ui'),
-    path('api/', include('apps.api.urls')),
-    path('api-auth/', include('rest_framework.urls')),
-    path('accounts/', include('apps.accounts.urls')),
+    path("admin/", admin.site.urls),
+    path(
+        "api/schema/",
+        SpectacularAPIView.as_view(authentication_classes=[], permission_classes=[AllowAny]),
+        name="schema",
+    ),
+    path(
+        "api/docs/",
+        SpectacularSwaggerView.as_view(
+            url_name="schema",
+            authentication_classes=[],
+            permission_classes=[AllowAny],
+        ),
+        name="swagger-ui",
+    ),
+    path("api/", include("apps.api.urls")),
+    path("api-auth/", include("rest_framework.urls")),
+    path("accounts/", include("apps.accounts.urls")),
 ]
 
-if settings.DEBUG:
+if settings.SERVE_MEDIA:
     urlpatterns += static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)

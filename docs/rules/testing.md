@@ -25,7 +25,7 @@ Gemeinsame Fixtures, darunter `api_client`, stehen in `backend/conftest.py`.
 | freezegun | Zeitabhängige Logik |
 | Locust | Last und Durchsatz |
 
-Hypothesis ist für Property-based Tests vorgesehen und noch nicht eingebunden. Die Pakete stehen in `backend/requirements-dev.txt`.
+Hypothesis prüft Eigenschaften an reinen Validatoren. Die Pakete stehen in `backend/requirements-dev.txt`. `pytest` scheitert, wenn die Abdeckung von `apps` unter die Schwelle in `.coveragerc` fällt.
 
 ## Testarten
 

@@ -2,10 +2,9 @@ from django.apps import AppConfig
 
 
 class AccountsConfig(AppConfig):
-    name = 'apps.accounts'
-    label = 'accounts'
+    name = "apps.accounts"
+    label = "accounts"
 
     def ready(self):
-        from apps.accounts.api.v1.schema import accounts as _accounts_schema
-
-        _accounts_schema
+        # Registriert die OpenAPI-Erweiterung beim Import.
+        import apps.accounts.api.v1.schema.accounts  # noqa: F401

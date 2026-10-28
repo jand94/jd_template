@@ -1,4 +1,4 @@
-name: jd_pmgt
+name: jd_template
 
 services:
   db:
@@ -33,6 +33,7 @@ services:
     build:
       context: ../backend
       dockerfile: ../docker/backend/Dockerfile
+      target: dev
     env_file:
       - .env
     environment:
@@ -51,6 +52,18 @@ services:
         condition: service_healthy
       redis:
         condition: service_healthy
+    healthcheck:
+      test:
+        [
+          "CMD",
+          "python",
+          "-c",
+          "import urllib.request; urllib.request.urlopen(urllib.request.Request('http://127.0.0.1:8000/api/v1/ready/', headers={'X-Forwarded-Proto': 'https'}))",
+        ]
+      interval: 10s
+      timeout: 5s
+      retries: 12
+      start_period: 40s
     command:
       - sh
       - -c
@@ -60,6 +73,7 @@ services:
     build:
       context: ../frontend
       dockerfile: ../docker/frontend/Dockerfile
+      target: dev
     environment:
       PROJECT_NAME: ${PROJECT_NAME}
       API_TITLE: ${API_TITLE}

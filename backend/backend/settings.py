@@ -13,110 +13,137 @@ https://docs.djangoproject.com/en/6.1/ref/settings/
 import os
 from pathlib import Path
 
+from django.core.exceptions import ImproperlyConfigured
+
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
 
 
-# Quick-start development settings - unsuitable for production
-# See https://docs.djangoproject.com/en/6.1/howto/deployment/checklist/
+def env_bool(name, default):
+    raw = os.environ.get(name)
+    if raw is None or not raw.strip():
+        return default
+    return raw.strip().lower() in {"1", "true", "yes", "on"}
 
-# SECURITY WARNING: keep the secret key used in production secret!
-SECRET_KEY = 'django-insecure-tds_&o0vw$+^j%zs-z+dd6qrpz)o1(!d*x(#-@14ayym6#_ter'
 
-# SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = True
+# DEBUG und SECRET_KEY kommen aus der Umgebung. docker/.env.example setzt sie
+# für den lokalen Stack. Ohne SECRET_KEY startet nur der Debug-Betrieb.
+DEBUG = env_bool("DEBUG", True)
+
+SECRET_KEY = os.environ.get("SECRET_KEY", "").strip()
+if not SECRET_KEY:
+    if DEBUG:
+        SECRET_KEY = "django-insecure-local-only"
+    else:
+        raise ImproperlyConfigured("SECRET_KEY fehlt, sobald DEBUG aus ist.")
 
 ALLOWED_HOSTS = [
     host.strip()
-    for host in os.environ.get('ALLOWED_HOSTS', 'localhost,127.0.0.1,backend').split(',')
+    for host in os.environ.get("ALLOWED_HOSTS", "localhost,127.0.0.1,backend").split(",")
     if host.strip()
 ]
 
 # Browser-Origin des Frontends, wenn die Sitzung über den Next-Proxy läuft.
 CSRF_TRUSTED_ORIGINS = [
     origin.strip()
-    for origin in os.environ.get('CSRF_TRUSTED_ORIGINS', '').split(',')
+    for origin in os.environ.get("CSRF_TRUSTED_ORIGINS", "").split(",")
     if origin.strip()
 ]
+
+# Hinter HTTPS gelten die sicheren Defaults. Lokal bleibt HTTP erreichbar,
+# solange DEBUG an ist. Die Variablen überschreiben das einzeln.
+_BEHIND_HTTPS = not DEBUG
+SESSION_COOKIE_SECURE = env_bool("SESSION_COOKIE_SECURE", _BEHIND_HTTPS)
+CSRF_COOKIE_SECURE = env_bool("CSRF_COOKIE_SECURE", _BEHIND_HTTPS)
+SESSION_COOKIE_SAMESITE = "Lax"
+CSRF_COOKIE_SAMESITE = "Lax"
+# Der Browser-Client liest das CSRF-Cookie aus document.cookie.
+CSRF_COOKIE_HTTPONLY = False
+SECURE_SSL_REDIRECT = env_bool("SECURE_SSL_REDIRECT", _BEHIND_HTTPS)
+SECURE_HSTS_SECONDS = 0 if DEBUG else int(os.environ.get("SECURE_HSTS_SECONDS", "31536000"))
+SECURE_HSTS_INCLUDE_SUBDOMAINS = _BEHIND_HTTPS
+SECURE_HSTS_PRELOAD = _BEHIND_HTTPS
+SECURE_PROXY_SSL_HEADER = ("HTTP_X_FORWARDED_PROTO", "https")
+SECURE_CONTENT_TYPE_NOSNIFF = True
 
 
 # Application definition
 
 INSTALLED_APPS = [
     # Django
-    'django.contrib.admin',
-    'django.contrib.auth',
-    'django.contrib.contenttypes',
-    'django.contrib.sessions',
-    'django.contrib.messages',
-    'django.contrib.staticfiles',
-
+    "django.contrib.admin",
+    "django.contrib.auth",
+    "django.contrib.contenttypes",
+    "django.contrib.sessions",
+    "django.contrib.messages",
+    "django.contrib.staticfiles",
     # 3rd Party
-    'rest_framework',
-    'drf_spectacular',
-
+    "rest_framework",
+    "drf_spectacular",
     # interne Apps
-    'apps.api.apps.ApiConfig',
-    'apps.accounts.apps.AccountsConfig',
+    "apps.api.apps.ApiConfig",
+    "apps.accounts.apps.AccountsConfig",
 ]
 
-AUTH_USER_MODEL = 'accounts.User'
+AUTH_USER_MODEL = "accounts.User"
 
 MIDDLEWARE = [
-    'django.middleware.security.SecurityMiddleware',
-    'django.contrib.sessions.middleware.SessionMiddleware',
-    'django.middleware.common.CommonMiddleware',
-    'django.middleware.csrf.CsrfViewMiddleware',
-    'django.contrib.auth.middleware.AuthenticationMiddleware',
-    'django.contrib.messages.middleware.MessageMiddleware',
-    'django.middleware.clickjacking.XFrameOptionsMiddleware',
+    "backend.request_id.RequestIdMiddleware",
+    "django.middleware.security.SecurityMiddleware",
+    "whitenoise.middleware.WhiteNoiseMiddleware",
+    "django.contrib.sessions.middleware.SessionMiddleware",
+    "django.middleware.common.CommonMiddleware",
+    "django.middleware.csrf.CsrfViewMiddleware",
+    "django.contrib.auth.middleware.AuthenticationMiddleware",
+    "django.contrib.messages.middleware.MessageMiddleware",
+    "django.middleware.clickjacking.XFrameOptionsMiddleware",
 ]
 
-ROOT_URLCONF = 'backend.urls'
+ROOT_URLCONF = "backend.urls"
 
 TEMPLATES = [
     {
-        'BACKEND': 'django.template.backends.django.DjangoTemplates',
-        'DIRS': [],
-        'APP_DIRS': True,
-        'OPTIONS': {
-            'context_processors': [
-                'django.template.context_processors.request',
-                'django.contrib.auth.context_processors.auth',
-                'django.contrib.messages.context_processors.messages',
+        "BACKEND": "django.template.backends.django.DjangoTemplates",
+        "DIRS": [],
+        "APP_DIRS": True,
+        "OPTIONS": {
+            "context_processors": [
+                "django.template.context_processors.request",
+                "django.contrib.auth.context_processors.auth",
+                "django.contrib.messages.context_processors.messages",
             ],
         },
     },
 ]
 
-WSGI_APPLICATION = 'backend.wsgi.application'
+WSGI_APPLICATION = "backend.wsgi.application"
 
 
 # Database
 # https://docs.djangoproject.com/en/6.1/ref/settings/#databases
 
 DATABASES = {
-    'default': {
-        'ENGINE': 'django.db.backends.postgresql',
-        'NAME': os.environ.get('POSTGRES_DB', 'jd_pmgt'),
-        'USER': os.environ.get('POSTGRES_USER', 'jd_pmgt'),
-        'PASSWORD': os.environ.get('POSTGRES_PASSWORD', 'jd_pmgt'),
-        'HOST': os.environ.get('POSTGRES_HOST', 'localhost'),
-        'PORT': os.environ.get('POSTGRES_PORT', '5432'),
+    "default": {
+        "ENGINE": "django.db.backends.postgresql",
+        "NAME": os.environ.get("POSTGRES_DB", "jd_template"),
+        "USER": os.environ.get("POSTGRES_USER", "jd_template"),
+        "PASSWORD": os.environ.get("POSTGRES_PASSWORD", "jd_template"),
+        "HOST": os.environ.get("POSTGRES_HOST", "localhost"),
+        "PORT": os.environ.get("POSTGRES_PORT", "5432"),
     }
 }
 
 CACHES = {
-    'default': {
-        'BACKEND': 'django.core.cache.backends.redis.RedisCache',
-        'LOCATION': 'redis://{}:{}'.format(
-            os.environ.get('REDIS_HOST', 'localhost'),
-            os.environ.get('REDIS_PORT', '6379'),
+    "default": {
+        "BACKEND": "django.core.cache.backends.redis.RedisCache",
+        "LOCATION": "redis://{}:{}".format(
+            os.environ.get("REDIS_HOST", "localhost"),
+            os.environ.get("REDIS_PORT", "6379"),
         ),
     }
 }
 
-SESSION_ENGINE = 'django.contrib.sessions.backends.cached_db'
+SESSION_ENGINE = "django.contrib.sessions.backends.cached_db"
 
 
 # Password validation
@@ -124,16 +151,16 @@ SESSION_ENGINE = 'django.contrib.sessions.backends.cached_db'
 
 AUTH_PASSWORD_VALIDATORS = [
     {
-        'NAME': 'django.contrib.auth.password_validation.UserAttributeSimilarityValidator',
+        "NAME": "django.contrib.auth.password_validation.UserAttributeSimilarityValidator",
     },
     {
-        'NAME': 'django.contrib.auth.password_validation.MinimumLengthValidator',
+        "NAME": "django.contrib.auth.password_validation.MinimumLengthValidator",
     },
     {
-        'NAME': 'django.contrib.auth.password_validation.CommonPasswordValidator',
+        "NAME": "django.contrib.auth.password_validation.CommonPasswordValidator",
     },
     {
-        'NAME': 'django.contrib.auth.password_validation.NumericPasswordValidator',
+        "NAME": "django.contrib.auth.password_validation.NumericPasswordValidator",
     },
 ]
 
@@ -141,9 +168,9 @@ AUTH_PASSWORD_VALIDATORS = [
 # Internationalization
 # https://docs.djangoproject.com/en/6.1/topics/i18n/
 
-LANGUAGE_CODE = 'en-us'
+LANGUAGE_CODE = "de"
 
-TIME_ZONE = 'UTC'
+TIME_ZONE = "UTC"
 
 USE_I18N = True
 
@@ -153,43 +180,119 @@ USE_TZ = True
 # Static files (CSS, JavaScript, Images)
 # https://docs.djangoproject.com/en/6.1/howto/static-files/
 
-STATIC_URL = 'static/'
-MEDIA_URL = 'media/'
-MEDIA_ROOT = BASE_DIR / 'media'
+STATIC_URL = "static/"
+STATIC_ROOT = BASE_DIR / "staticfiles"
+MEDIA_URL = "media/"
+MEDIA_ROOT = BASE_DIR / "media"
+# Im Debug-Betrieb liefert Django Medien selbst aus. In Produktion entscheidet
+# SERVE_MEDIA, ob derselbe Prozess das übernimmt oder ein Speicher-Backend.
+SERVE_MEDIA = env_bool("SERVE_MEDIA", DEBUG)
+
+STORAGES = {
+    "default": {
+        "BACKEND": "django.core.files.storage.FileSystemStorage",
+    },
+    "staticfiles": {
+        "BACKEND": (
+            "django.contrib.staticfiles.storage.StaticFilesStorage"
+            if DEBUG
+            else "whitenoise.storage.CompressedManifestStaticFilesStorage"
+        ),
+    },
+}
 
 
 # Email
 # https://docs.djangoproject.com/en/6.1/topics/email/#topic-email-configuration
 
+_EMAIL_BACKEND = os.environ.get(
+    "EMAIL_BACKEND",
+    "django.core.mail.backends.console.EmailBackend",
+)
+_EMAIL_OPTIONS = {}
+if _EMAIL_BACKEND.endswith("smtp.EmailBackend"):
+    _EMAIL_USE_TLS = env_bool("EMAIL_USE_TLS", False)
+    _EMAIL_OPTIONS = {
+        "host": os.environ.get("EMAIL_HOST", "localhost"),
+        "port": int(os.environ.get("EMAIL_PORT", "587" if _EMAIL_USE_TLS else "25")),
+        "username": os.environ.get("EMAIL_HOST_USER") or None,
+        "password": os.environ.get("EMAIL_HOST_PASSWORD") or None,
+        "use_tls": _EMAIL_USE_TLS,
+    }
+
+# Django 6 liest MAILERS. EMAIL_BACKEND als Setting ist veraltet.
 MAILERS = {
-    'default': {
-        'BACKEND': 'django.core.mail.backends.console.EmailBackend',
+    "default": {
+        "BACKEND": _EMAIL_BACKEND,
+        "OPTIONS": _EMAIL_OPTIONS,
     },
 }
 
-PROJECT_NAME = os.environ.get('PROJECT_NAME', 'jd_Template')
-API_TITLE = os.environ.get('API_TITLE', f'{PROJECT_NAME} API')
-API_DESCRIPTION = os.environ.get('API_DESCRIPTION', f'HTTP-API für {PROJECT_NAME}')
-API_VERSION = os.environ.get('API_VERSION', '0.1.0')
-DEFAULT_FROM_EMAIL = os.environ.get('DEFAULT_FROM_EMAIL', f'{PROJECT_NAME}@localhost')
+PROJECT_NAME = os.environ.get("PROJECT_NAME", "jd_template")
+API_TITLE = os.environ.get("API_TITLE", f"{PROJECT_NAME} API")
+API_DESCRIPTION = os.environ.get("API_DESCRIPTION", f"HTTP-API für {PROJECT_NAME}")
+API_VERSION = os.environ.get("API_VERSION", "0.1.0")
+DEFAULT_FROM_EMAIL = os.environ.get("DEFAULT_FROM_EMAIL", f"{PROJECT_NAME}@localhost")
 
 REST_FRAMEWORK = {
-    'DEFAULT_SCHEMA_CLASS': 'drf_spectacular.openapi.AutoSchema',
-    'DEFAULT_THROTTLE_RATES': {
-        'accounts-auth': '5/minute',
-        'accounts-register': '5/minute',
-        'accounts-reset': '5/minute',
-        'accounts-password-change': '10/minute',
-        'accounts-profile': '30/minute',
+    "DEFAULT_SCHEMA_CLASS": "drf_spectacular.openapi.AutoSchema",
+    "DEFAULT_AUTHENTICATION_CLASSES": [
+        "rest_framework.authentication.SessionAuthentication",
+    ],
+    "DEFAULT_PERMISSION_CLASSES": [
+        "rest_framework.permissions.IsAuthenticated",
+    ],
+    "DEFAULT_PAGINATION_CLASS": "apps.api.pagination.PagePagination",
+    "PAGE_SIZE": 20,
+    "EXCEPTION_HANDLER": "apps.api.errors.exception_handler",
+    "DEFAULT_THROTTLE_RATES": {
+        "accounts-auth": "5/minute",
+        "accounts-register": "5/minute",
+        "accounts-reset": "5/minute",
+        "accounts-password-change": "10/minute",
+        "accounts-profile": "30/minute",
     },
 }
 
 SPECTACULAR_SETTINGS = {
-    'TITLE': API_TITLE,
-    'DESCRIPTION': API_DESCRIPTION,
-    'VERSION': API_VERSION,
-    'SERVE_INCLUDE_SCHEMA': False,
-    'TAGS': [
-        {'name': 'Accounts', 'description': 'Registrierung, Sitzung und Profil des Benutzerkontos.'},
+    "TITLE": API_TITLE,
+    "DESCRIPTION": API_DESCRIPTION,
+    "VERSION": API_VERSION,
+    "SERVE_INCLUDE_SCHEMA": False,
+    "TAGS": [
+        {
+            "name": "Accounts",
+            "description": "Registrierung, Sitzung und Profil des Benutzerkontos.",
+        },
+        {
+            "name": "System",
+            "description": "Lebenszeichen und Bereitschaft von Datenbank und Cache.",
+        },
     ],
+}
+
+LOGGING = {
+    "version": 1,
+    "disable_existing_loggers": False,
+    "filters": {
+        "request_id": {
+            "()": "backend.request_id.RequestIdFilter",
+        },
+    },
+    "formatters": {
+        "plain": {
+            "format": "%(asctime)s %(levelname)s %(name)s [%(request_id)s] %(message)s",
+        },
+    },
+    "handlers": {
+        "console": {
+            "class": "logging.StreamHandler",
+            "filters": ["request_id"],
+            "formatter": "plain",
+        },
+    },
+    "root": {
+        "handlers": ["console"],
+        "level": os.environ.get("LOG_LEVEL", "INFO"),
+    },
 }

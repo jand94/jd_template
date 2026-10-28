@@ -35,6 +35,8 @@ Die lokale Datei ist `docker/.env`. Die Vorlage [docker/.env.example](docker/.en
 | Variable | Bedeutung |
 |---|---|
 | `FRONTEND_PORT`, `BACKEND_PORT`, `POSTGRES_PORT`, `REDIS_PORT` | Ports auf dem Rechner |
+| `DEBUG`, `SECRET_KEY` | Debug-Betrieb und Signierschlüssel. Ohne Schlüssel läuft nur `DEBUG=true` |
+| `EMAIL_BACKEND` | Versand. Lokal die Konsole, Tests nutzen locmem |
 | `POSTGRES_DB`, `POSTGRES_USER`, `POSTGRES_PASSWORD` | Dev-Datenbank |
 | `PROJECT_NAME`, `API_TITLE`, `API_DESCRIPTION`, `API_VERSION` | Namen in Oberfläche, OpenAPI, Admin und E-Mails |
 | `DEFAULT_FROM_EMAIL` | Absender für ausgehende Mail |
@@ -66,6 +68,7 @@ Mit den Ports aus der Vorlage:
 |---|---|
 | Frontend | `http://127.0.0.1:3000` |
 | Health | `http://127.0.0.1:8000/api/v1/health/` liefert `{"status":"ok"}` |
+| Ready | `http://127.0.0.1:8000/api/v1/ready/` prüft Datenbank und Redis |
 | API | `http://127.0.0.1:8000/api/v1/` |
 | Swagger | `http://127.0.0.1:8000/api/docs/` |
 | OpenAPI-Schema | `http://127.0.0.1:8000/api/schema/` |
@@ -171,14 +174,21 @@ make test                 # pytest mit Abdeckung
 make test-unit
 make test-integration
 make test-api
+make test-frontend        # Vitest
 make typecheck            # tsc --noEmit im Frontend
-make lint                 # ESLint im Frontend
+make lint                 # Ruff und ESLint
+make lint-python          # nur Ruff
+make build-frontend       # next build
+make check-deploy         # manage.py check --deploy
+make check-migrations     # makemigrations --check
 make loadtest             # Locust, 100 Benutzer, 30 Sekunden
 ```
 
 `LOCUST_USERS`, `LOCUST_SPAWN_RATE` und `LOCUST_RUN_TIME` ändern den Lastlauf. Locust braucht `backend/.venv` und die Pakete aus `backend/requirements-dev.txt`. Schichten, Marker und Ablage stehen in [docs/rules/testing.md](docs/rules/testing.md).
 
-CI liegt in [.github/workflows/ci.yml](.github/workflows/ci.yml). Bei Push und Pull Request kopiert der Lauf `docker/.env.example` nach `docker/.env`, startet den Stack und führt `make test`, `make typecheck` und `make lint` aus.
+CI liegt in [.github/workflows/ci.yml](.github/workflows/ci.yml). Bei Push und Pull Request kopiert der Lauf `docker/.env.example` nach `docker/.env`, startet den Stack und führt Deploy-Check, Migrationscheck, pytest, Vitest, Typecheck, Lint und den Frontend-Build aus.
+
+Produktion startet über `make prod`, nachdem `docker/.env.prod.example` nach `docker/.env.prod` kopiert wurde. Ablauf und Variablen stehen in [docs/rules/deploy.md](docs/rules/deploy.md).
 
 ## Dokumentation
 
@@ -188,6 +198,8 @@ CI liegt in [.github/workflows/ci.yml](.github/workflows/ci.yml). Bei Push und P
 | [docs/rules/ordnerstruktur.md](docs/rules/ordnerstruktur.md) | Repository, Apps, Pakete, API-Versionen, Frontend-Module |
 | [docs/rules/dev-stack.md](docs/rules/dev-stack.md) | Compose, Ports, Volumes, Make |
 | [docs/rules/testing.md](docs/rules/testing.md) | Unit, Integration, API, Last |
+| [docs/rules/api.md](docs/rules/api.md) | Rechte, Seiten, Fehlerform |
+| [docs/rules/deploy.md](docs/rules/deploy.md) | Produktion, Umgebung, Bereitschaft |
 
 ## Aufbau
 

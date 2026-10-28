@@ -1,5 +1,5 @@
-from django.db import migrations, models
 import django.db.models.functions
+from django.db import migrations, models
 
 import apps.accounts.models.validators
 
@@ -23,7 +23,6 @@ def lowercase_emails(apps, schema_editor):
 
 
 class Migration(migrations.Migration):
-
     dependencies = [
         ("accounts", "0001_initial"),
     ]

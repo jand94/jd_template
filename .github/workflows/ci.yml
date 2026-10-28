@@ -37,11 +37,23 @@ jobs:
           docker compose --env-file docker/.env -f docker/compose.yml logs frontend
           exit 1
 
+      - name: Deploy-Check
+        run: make check-deploy
+
+      - name: Migrationen
+        run: make check-migrations
+
       - name: Tests
         run: make test
+
+      - name: Frontend-Tests
+        run: make test-frontend
 
       - name: Typecheck
         run: make typecheck
 
       - name: Lint
         run: make lint
+
+      - name: Frontend-Build
+        run: make build-frontend

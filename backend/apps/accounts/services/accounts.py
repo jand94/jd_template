@@ -74,9 +74,7 @@ def authenticate_user(*, username, password, request):
 def update_profile(user, data):
     unknown = set(data) - _ALLOWED_PROFILE_KEYS
     if unknown:
-        raise ValidationError(
-            {field: "This field cannot be updated." for field in sorted(unknown)}
-        )
+        raise ValidationError({field: "This field cannot be updated." for field in sorted(unknown)})
 
     old_avatar = user.avatar
     clear_avatar = "avatar" in data and not data.get("avatar")
@@ -85,10 +83,7 @@ def update_profile(user, data):
 
     if "email" in data and data["email"] != user.email:
         user.email_verified_at = None
-    if any(
-        field in data and data[field] != getattr(user, field)
-        for field in _PHONE_FIELDS
-    ):
+    if any(field in data and data[field] != getattr(user, field) for field in _PHONE_FIELDS):
         user.phone_verified_at = None
 
     for field, value in data.items():
@@ -121,24 +116,21 @@ def request_password_reset(*, email):
     uid = urlsafe_base64_encode(force_bytes(user.pk))
     token = default_token_generator.make_token(user)
     send_mail(
-        subject=f"Reset your {settings.PROJECT_NAME} password",
+        subject=f"Passwort für {settings.PROJECT_NAME} zurücksetzen",
         message=(
-            f"Set a new password with the {settings.API_TITLE}.\n"
+            f"Lege ein neues Passwort über die {settings.API_TITLE} fest.\n"
             f"uid: {uid}\n"
             f"token: {token}\n"
         ),
         from_email=settings.DEFAULT_FROM_EMAIL,
         recipient_list=[user.email],
+        using="default",
     )
 
 
 def confirm_password_reset(*, uid, token, new_password):
     user = _user_from_uid(uid)
-    if (
-        user is None
-        or not user.is_active
-        or not default_token_generator.check_token(user, token)
-    ):
+    if user is None or not user.is_active or not default_token_generator.check_token(user, token):
         raise InvalidPasswordReset()
     validate_password(new_password, user)
     user.set_password(new_password)

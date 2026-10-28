@@ -1,4 +1,4 @@
-from datetime import date, datetime, timezone as datetime_timezone
+from datetime import UTC, date, datetime
 
 import pytest
 from django.conf import settings
@@ -125,8 +125,8 @@ def test_verification_flags_follow_timestamps():
     assert user.is_email_verified is False
     assert user.is_phone_verified is False
 
-    user.email_verified_at = datetime(2026, 1, 1, tzinfo=datetime_timezone.utc)
-    user.phone_verified_at = datetime(2026, 1, 2, tzinfo=datetime_timezone.utc)
+    user.email_verified_at = datetime(2026, 1, 1, tzinfo=UTC)
+    user.phone_verified_at = datetime(2026, 1, 2, tzinfo=UTC)
 
     assert user.is_email_verified is True
     assert user.is_phone_verified is True

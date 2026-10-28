@@ -64,8 +64,7 @@ def validate_avatar(value) -> None:
     size = getattr(value, "size", None)
     if size is not None and size > AVATAR_MAX_BYTES:
         raise ValidationError(
-            _("Avatar files must be %(limit)s bytes or smaller.")
-            % {"limit": AVATAR_MAX_BYTES},
+            _("Avatar files must be %(limit)s bytes or smaller.") % {"limit": AVATAR_MAX_BYTES},
             code="avatar_too_large",
         )
 

@@ -1,3 +1,3 @@
-from .health import HealthSerializer
+from .health import HealthSerializer, ReadySerializer
 
-__all__ = ['HealthSerializer']
+__all__ = ["HealthSerializer", "ReadySerializer"]

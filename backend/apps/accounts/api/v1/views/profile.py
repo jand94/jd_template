@@ -48,7 +48,11 @@ class MeView(APIView):
         summary="Update the signed-in account",
         description="Changing the email address clears the previous email verification.",
         request=UserUpdateSerializer,
-        responses={200: UserSerializer, 400: OpenApiResponse(description="The submitted data is invalid."), 401: UNAUTHORIZED},
+        responses={
+            200: UserSerializer,
+            400: OpenApiResponse(description="The submitted data is invalid."),
+            401: UNAUTHORIZED,
+        },
     )
     def patch(self, request):
         serializer = UserUpdateSerializer(request.user, data=request.data, partial=True)

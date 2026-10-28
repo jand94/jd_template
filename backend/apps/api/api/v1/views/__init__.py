@@ -1,3 +1,3 @@
-from .health import health
+from .health import health, ready
 
-__all__ = ['health']
+__all__ = ["health", "ready"]

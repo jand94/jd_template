@@ -5,6 +5,10 @@ db.sqlite3
 *.sqlite3
 .env
 .pytest_cache/
+.hypothesis/
 .coverage
 htmlcov/
 media/
+staticfiles/*
+!staticfiles/.gitkeep
+.ruff_cache/

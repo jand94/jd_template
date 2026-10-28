@@ -22,10 +22,12 @@ ifeq ($(firstword $(MAKECMDGOALS)),$(filter $(firstword $(MAKECMDGOALS)),$(ARG_V
 endif
 
 .PHONY: help dev up down restart start stop build rebuild logs ps shell \
-	migrate makemigrations createsuperuser manage check \
-	test test-unit test-integration test-api loadtest \
-	lint typecheck install-backend install-frontend \
-	psql redis-cli urls config pull destroy create_app create_feature clean-pyc
+	migrate makemigrations createsuperuser manage check check-deploy check-migrations \
+	test test-unit test-integration test-api test-frontend loadtest \
+	lint lint-python format-python typecheck build-frontend install-backend install-frontend \
+	psql redis-cli urls config pull destroy create_app create_feature clean-pyc prod
+
+PROD_COMPOSE := docker compose --env-file docker/.env.prod -f docker/compose.prod.yml
 
 ##@ Hilfe
 
@@ -137,6 +139,23 @@ manage: ## manage.py ausführen. make manage showmigrations
 check: ## Django-Systemcheck
 	$(COMPOSE) exec -T backend python manage.py check
 
+check-deploy: ## Deploy-Check mit DEBUG aus und festem Schlüssel
+	$(COMPOSE) exec -T \
+		-e DEBUG=false \
+		-e SECRET_KEY=ci-deploy-check-secret-key-not-for-production-use-0123456789 \
+		-e ALLOWED_HOSTS=example.com \
+		-e CSRF_TRUSTED_ORIGINS=https://example.com \
+		-e EMAIL_BACKEND=django.core.mail.backends.smtp.EmailBackend \
+		-e EMAIL_HOST=smtp.example.com \
+		-e EMAIL_USE_TLS=true \
+		backend python manage.py check --deploy --fail-level WARNING
+
+check-migrations: ## Fehlende Migrationen melden
+	$(COMPOSE) exec -T backend python manage.py makemigrations --check --dry-run
+
+prod: ## Produktions-Compose mit docker/.env.prod starten
+	$(PROD_COMPOSE) up -d --build
+
 create_app: ## App anlegen. make create_app <appname>
 	python3 scripts/create_app.py $(APP_ARGS)
 
@@ -144,6 +163,9 @@ create_feature: ## Frontend-Feature anlegen. make create_feature <name>
 	python3 scripts/create_feature.py $(FEATURE_ARGS)
 
 ##@ Tests
+
+test-frontend: ## Vitest im Frontend-Container
+	$(COMPOSE) exec -T frontend npm test
 
 test: ## pytest mit Abdeckung im Backend-Container
 	$(COMPOSE) exec -T backend pytest
@@ -165,11 +187,23 @@ loadtest: ## Locust, Standard 100 Benutzer für 30s. LOCUST_USERS=10 make loadte
 
 ##@ Qualität
 
-lint: ## ESLint im Frontend-Container
+lint: ## Ruff und ESLint
+	$(MAKE) lint-python
 	$(COMPOSE) exec -T frontend npm run lint
+
+lint-python: ## Ruff im Backend-Container
+	$(COMPOSE) exec -T backend ruff check .
+	$(COMPOSE) exec -T backend ruff format --check .
+
+format-python: ## Ruff-Format im Backend-Container
+	$(COMPOSE) exec -T backend ruff format .
+	$(COMPOSE) exec -T backend ruff check --fix .
 
 typecheck: ## TypeScript im Frontend-Container
 	$(COMPOSE) exec -T frontend npx tsc --noEmit --pretty false
+
+build-frontend: ## Next.js-Build im Frontend-Container
+	$(COMPOSE) exec -T frontend npm run build
 
 install-backend: ## Python-Abhängigkeiten im Backend-Container installieren
 	$(COMPOSE) exec -T backend pip install --no-cache-dir -r requirements-dev.txt

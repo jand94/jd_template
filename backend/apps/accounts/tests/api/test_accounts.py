@@ -4,7 +4,6 @@ from io import BytesIO
 import pytest
 from django.core import mail
 from django.core.files.uploadedfile import SimpleUploadedFile
-from django.test import override_settings
 from django.urls import reverse
 from PIL import Image
 from rest_framework.test import APIClient
@@ -12,9 +11,6 @@ from rest_framework.test import APIClient
 from apps.accounts.models import User
 
 PASSWORD = "a-long-password-99"
-LOC_MEM_MAILERS = {
-    "default": {"BACKEND": "django.core.mail.backends.locmem.EmailBackend"},
-}
 
 
 @pytest.fixture(autouse=True)
@@ -157,14 +153,10 @@ def test_password_change_keeps_the_session(api_client):
 
 @pytest.mark.api
 @pytest.mark.django_db
-@override_settings(MAILERS=LOC_MEM_MAILERS)
 def test_password_reset_roundtrip_does_not_reveal_unknown_emails(api_client):
     _register(api_client)
     api_client.post(reverse("accounts:logout"))
-    if not hasattr(mail, "outbox"):
-        mail.outbox = []
-    else:
-        mail.outbox.clear()
+    mail.outbox.clear()
 
     unknown = api_client.post(
         reverse("accounts:password-reset"),
@@ -181,6 +173,7 @@ def test_password_reset_roundtrip_does_not_reveal_unknown_emails(api_client):
     )
     assert requested.status_code == 204
     body = mail.outbox[0].body
+    assert "zurücksetzen" in mail.outbox[0].subject
     uid = re.search(r"uid: (\S+)", body).group(1)
     token = re.search(r"token: (\S+)", body).group(1)
 
@@ -212,7 +205,6 @@ def test_password_reset_roundtrip_does_not_reveal_unknown_emails(api_client):
 
 @pytest.mark.api
 @pytest.mark.django_db
-@override_settings(MAILERS=LOC_MEM_MAILERS)
 def test_password_reset_invalidates_other_sessions(api_client):
     first = APIClient()
     second = APIClient()
@@ -220,10 +212,7 @@ def test_password_reset_invalidates_other_sessions(api_client):
     second.force_login(User.objects.get(username="ada"))
     assert second.get(reverse("accounts:me")).status_code == 200
 
-    if not hasattr(mail, "outbox"):
-        mail.outbox = []
-    else:
-        mail.outbox.clear()
+    mail.outbox.clear()
 
     first.post(reverse("accounts:logout"))
     first.post(reverse("accounts:password-reset"), {"email": "ada@example.com"}, format="json")

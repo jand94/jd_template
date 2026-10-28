@@ -32,7 +32,9 @@ from apps.accounts.services import (
 )
 
 AUTH_ERROR = OpenApiResponse(description="The submitted data is invalid.")
-UNAUTHORIZED = OpenApiResponse(description="Authentication is required or the credentials are invalid.")
+UNAUTHORIZED = OpenApiResponse(
+    description="Authentication is required or the credentials are invalid."
+)
 
 
 class AccountAuthView(APIView):
@@ -55,7 +57,9 @@ class RegisterView(AccountAuthView):
         try:
             user = serializer.save()
         except DjangoValidationError as exc:
-            raise ValidationError(exc.message_dict if hasattr(exc, "message_dict") else exc.messages) from exc
+            raise ValidationError(
+                exc.message_dict if hasattr(exc, "message_dict") else exc.messages
+            ) from exc
         authenticate_user(
             username=user.get_username(),
             password=serializer.validated_data["password"],
@@ -119,7 +123,9 @@ class PasswordChangeView(AccountAuthView):
                 new_password=serializer.validated_data["password"],
             )
         except InvalidCredentials as exc:
-            raise ValidationError({"current_password": "The current password is incorrect."}) from exc
+            raise ValidationError(
+                {"current_password": "The current password is incorrect."}
+            ) from exc
         except DjangoValidationError as exc:
             raise ValidationError({"password": list(exc.messages)}) from exc
         update_session_auth_hash(request, request.user)
@@ -156,7 +162,9 @@ class PasswordResetConfirmView(AccountAuthView):
         try:
             serializer.save()
         except InvalidPasswordReset as exc:
-            raise ValidationError({"token": "This password reset link is invalid or has expired."}) from exc
+            raise ValidationError(
+                {"token": "This password reset link is invalid or has expired."}
+            ) from exc
         except DjangoValidationError as exc:
             raise ValidationError({"password": list(exc.messages)}) from exc
         return Response(status=status.HTTP_204_NO_CONTENT)

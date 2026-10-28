@@ -3,3 +3,6 @@ source = apps
 omit =
     */migrations/*
     */tests/*
+
+[report]
+fail_under = 90
