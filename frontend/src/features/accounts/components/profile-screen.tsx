@@ -1,9 +1,8 @@
 "use client";
 
 import Link from "next/link";
-import { useRouter } from "next/navigation";
 import { Check, KeyRound, Mail, UserRound } from "lucide-react";
-import { useEffect, useState, type FormEvent } from "react";
+import { useState, type FormEvent } from "react";
 import { Icon } from "@/components/ui/icon";
 import { PageIntro } from "@/components/ui/page-intro";
 import { panelClass } from "@/components/ui/styles";
@@ -17,22 +16,10 @@ import { FormError, FormStatus, SubmitButton, TextField } from "@/features/accou
 import { useAccount } from "@/features/accounts/hooks/account-context";
 
 export function ProfileScreen() {
-  const router = useRouter();
   const account = useAccount();
 
-  useEffect(() => {
-    if (account.status === "anonymous") {
-      router.replace("/anmelden");
-    }
-  }, [account.status, router]);
-
-  if (account.status !== "authenticated" || !account.user) {
-    return (
-      <p className="mx-auto flex w-full max-w-md items-center gap-3 text-sm text-muted-foreground">
-        <Icon icon={UserRound} className="size-5" />
-        Profil wird geladen.
-      </p>
-    );
+  if (!account.user) {
+    return null;
   }
 
   return <ProfileForms user={account.user} onUser={account.setUser} />;

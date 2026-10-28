@@ -25,7 +25,7 @@ export function LoginForm() {
     try {
       const user = await login(username, password);
       account.setUser(user);
-      router.push("/profil");
+      router.push("/dashboard");
     } catch (caught) {
       setError(caught);
       setPending(false);

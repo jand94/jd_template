@@ -11,8 +11,8 @@ Anwendungscode liegt in `frontend/src`. Konfiguration (`package.json`, `next.con
 ```text
 src/
   app/                     # nur Routen und Layouts
-    (public)/              # ohne App-Shell
-    (app)/                 # eingeloggte Fläche
+    (public)/              # Anmeldung, Registrierung, Passwort-Reset
+    (app)/                 # nur mit Sitzung, Einstieg /dashboard
     layout.tsx
     globals.css
   components/

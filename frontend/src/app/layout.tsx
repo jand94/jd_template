@@ -1,10 +1,9 @@
 import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import Script from "next/script";
-import { AppShell } from "@/components/layout/app-shell";
 import { themeBootScript } from "@/components/layout/theme";
 import { brand } from "@/config/brand";
-import { AccountLinks, AccountMenu, AccountProvider } from "@/features/accounts";
+import { AccountProvider } from "@/features/accounts";
 import "./globals.css";
 
 const geistSans = Geist({
@@ -36,11 +35,7 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
         <Script id="theme-boot" strategy="beforeInteractive">
           {themeBootScript}
         </Script>
-        <AccountProvider>
-          <AppShell accountMenu={<AccountMenu />} mobileAccount={<AccountLinks />}>
-            {children}
-          </AppShell>
-        </AccountProvider>
+        <AccountProvider>{children}</AccountProvider>
       </body>
     </html>
   );

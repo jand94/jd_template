@@ -3,6 +3,15 @@
 import { createContext, useContext, useEffect, useMemo, useState, type ReactNode } from "react";
 import { currentUser, logout as logoutRequest, type Account } from "@/features/accounts/api/session";
 
+async function readCurrentUser(): Promise<Account | null> {
+  try {
+    return await currentUser();
+  } catch {
+    await new Promise((resolve) => setTimeout(resolve, 1000));
+    return currentUser();
+  }
+}
+
 type AccountStatus = "loading" | "anonymous" | "authenticated";
 
 type AccountContextValue = {
@@ -20,13 +29,17 @@ export function AccountProvider({ children }: { children: ReactNode }) {
 
   useEffect(() => {
     let cancelled = false;
-    currentUser().then((next) => {
-      if (cancelled) {
-        return;
-      }
-      setUserState(next);
-      setStatus(next ? "authenticated" : "anonymous");
-    });
+    readCurrentUser()
+      .then((next) => {
+        if (cancelled) {
+          return;
+        }
+        setUserState(next);
+        setStatus(next ? "authenticated" : "anonymous");
+      })
+      .catch(() => {
+        // Sitzung bleibt unbestätigt. Geschützte Seiten rendern weiter, solange das Cookie gilt.
+      });
     return () => {
       cancelled = true;
     };

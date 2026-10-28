@@ -39,7 +39,7 @@ export function RegisterForm() {
         terms_accepted: termsAccepted,
       });
       account.setUser(user);
-      router.push("/profil");
+      router.push("/dashboard");
     } catch (caught) {
       setError(caught);
       setPending(false);

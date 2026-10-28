@@ -4,7 +4,7 @@ export type NavigationItem = {
 };
 
 export const primaryNavigation: NavigationItem[] = [
-  { href: "/", label: "Start" },
+  { href: "/dashboard", label: "Dashboard" },
   { href: "/system", label: "System" },
 ];
 

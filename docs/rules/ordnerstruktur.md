@@ -80,8 +80,8 @@ Anwendungscode liegt in `frontend/src`. `package.json`, `next.config.ts` und ESL
 ```text
 frontend/src/
   app/                     # nur Routen und Layouts
-    (public)/              # ohne App-Shell, Gruppe fehlt in der URL
-    (app)/                 # eingeloggte Fläche
+    (public)/              # Anmeldung ohne App-Shell, Gruppe fehlt in der URL
+    (app)/                 # nur mit Sitzung, Einstieg /dashboard
     layout.tsx
     globals.css
   components/

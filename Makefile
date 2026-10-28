@@ -37,6 +37,7 @@ urls: ## Lokale URLs aus docker/.env anzeigen
 	printf 'Health     http://127.0.0.1:%s/api/v1/health/\n' "$$BACKEND_PORT" && \
 	printf 'Swagger    http://127.0.0.1:%s/api/docs/\n' "$$BACKEND_PORT" && \
 	printf 'Schema     http://127.0.0.1:%s/api/schema/\n' "$$BACKEND_PORT" && \
+	printf 'Admin      http://127.0.0.1:%s/admin/\n' "$$BACKEND_PORT" && \
 	printf 'Postgres   127.0.0.1:%s\n' "$$POSTGRES_PORT" && \
 	printf 'Redis      127.0.0.1:%s\n' "$$REDIS_PORT"
 

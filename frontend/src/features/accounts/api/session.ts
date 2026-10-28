@@ -118,7 +118,7 @@ export async function currentUser(): Promise<Account | null> {
     return null;
   }
   if (!response.ok) {
-    return null;
+    throw new ApiError("Die Sitzung konnte nicht gelesen werden.", response.status);
   }
   return (await response.json()) as Account;
 }

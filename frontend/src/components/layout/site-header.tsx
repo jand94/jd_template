@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { House, Layers, Menu, Server, X, type LucideIcon } from "lucide-react";
+import { Layers, LayoutDashboard, Menu, Server, X, type LucideIcon } from "lucide-react";
 import { useEffect, useId, useRef, useState, type ReactNode } from "react";
 import { Icon } from "@/components/ui/icon";
 import { focusRing, pressable } from "@/components/ui/styles";
@@ -10,7 +10,7 @@ import { isCurrentPath, type NavigationItem } from "@/config/navigation";
 import { ThemeToggle } from "@/components/layout/theme-toggle";
 
 const itemIcons: Record<string, LucideIcon> = {
-  "/": House,
+  "/dashboard": LayoutDashboard,
   "/system": Server,
 };
 
@@ -76,7 +76,7 @@ export function SiteHeader({ projectName, items, accountMenu, mobileAccount }: S
     <header className="sticky top-0 z-40 border-b border-border bg-background/80 pt-[env(safe-area-inset-top)] backdrop-blur-md">
       <div className="mx-auto flex h-16 max-w-6xl items-center gap-2 px-4 sm:gap-4 sm:px-6 lg:px-8">
         <Link
-          href="/"
+          href="/dashboard"
           className={`${control} inline-flex h-11 min-w-0 items-center gap-2 rounded-lg pr-2 pl-1 text-base font-semibold tracking-tight text-foreground`}
         >
           <span className="inline-flex size-8 shrink-0 items-center justify-center rounded-lg bg-accent-soft text-accent">
