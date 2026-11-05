@@ -66,6 +66,7 @@ Vorlage: `docker/.env.example`.
 |---|---|---|
 | `BACKEND_PORT` | `8000` | Host-Port für Django, HTTPS über den Proxy. Swagger, Admin, Health und Ready |
 | `FRONTEND_PORT` | `3000` | Host-Port für Next.js, HTTPS über den Proxy |
+| `DEV_CERT_DNS` | leer | Weitere DNS-Namen im Dev-Zertifikat, kommagetrennt. `localhost`, `127.0.0.1`, der Hostname und die IPv4-Adressen bleiben immer enthalten. Danach `make certs` und `make restart proxy` |
 | `POSTGRES_PORT` | `5432` | Host-Port für PostgreSQL. Im Backend-Container immer `5432` |
 | `REDIS_PORT` | `6379` | Host-Port für Redis. Im Backend-Container immer `6379` |
 
@@ -141,7 +142,7 @@ Diese Namen können in `docker/.env` stehen und werden im Backend trotzdem vom C
 
 `API_ORIGIN` ist die Adresse, unter der Next.js Django im Compose-Netz ruft. Der Browser verwendet sie nicht. Der Browser ruft denselben Ursprung wie die Seite, und die Route-Handler unter `frontend/src/app/accounts` und `frontend/src/app/media` leiten an `API_ORIGIN` weiter.
 
-`FRONTEND_ORIGIN` baut Links in Mails: `{FRONTEND_ORIGIN}/email-bestaetigen` und `{FRONTEND_ORIGIN}/passwort-setzen`. In der Entwicklung zeigt der Wert auf `https://127.0.0.1` und den Frontend-Port. Wer das Frontend über einen SSH-Tunnel auf dem Laptop öffnet, bleibt bei dieser Adresse, weil der Tunnel genau dort endet. Das Zertifikat und der Import stehen in [Kapitel 1](01-ubuntu-vm.md).
+`FRONTEND_ORIGIN` baut Links in Mails: `{FRONTEND_ORIGIN}/email-bestaetigen` und `{FRONTEND_ORIGIN}/passwort-setzen`. In der Entwicklung zeigt der Wert auf `https://127.0.0.1` und den Frontend-Port. Wer das Frontend über einen SSH-Tunnel auf dem Laptop öffnet, bleibt bei dieser Adresse, weil der Tunnel genau dort endet. Das Zertifikat und der Import stehen in [Kapitel 4](04-zertifikate.md).
 
 Weitere Namen aus `settings.py`, ohne Zeile in der Vorlage:
 
@@ -162,7 +163,10 @@ Weitere Namen aus `settings.py`, ohne Zeile in der Vorlage:
 - SMTP statt Konsole
 - `ALLOWED_HOSTS`, `CSRF_TRUSTED_ORIGINS`, `FRONTEND_ORIGIN` auf den öffentlichen Namen
 - kein `BACKEND_PORT`, kein `POSTGRES_PORT`, kein `REDIS_PORT`, weil `compose.prod.yml` diese drei Dienste nicht veröffentlicht
-- `FRONTEND_PORT` bleibt, weil das Frontend der einzige veröffentlichte Dienst ist
+- `FRONTEND_PORT` ist der HTTPS-Port des Prod-Proxys
+- `PROD_TLS_MODE` ist `generate` oder `own`
+- `PROD_CERT_DNS` ergänzt bei `generate` die festen Namen `localhost`, `127.0.0.1`, Hostname und IPv4-Adressen
+- `PROD_TLS_CERT` und `PROD_TLS_KEY` gelten nur bei `own`
 
 Der TLS-Abschluss und der Header `X-Forwarded-Proto` stehen in [Kapitel 1](01-ubuntu-vm.md). Cookies, HSTS und die Bereitschaft beschreibt [docs/rules/deploy.md](../rules/deploy.md).
 
@@ -446,7 +450,7 @@ Lauf ändern:
 LOCUST_USERS=10 LOCUST_SPAWN_RATE=2 LOCUST_RUN_TIME=15s make loadtest
 ```
 
-Das Ziel liest `BACKEND_PORT` aus `docker/.env` und prüft `https://127.0.0.1`. `REQUESTS_CA_BUNDLE` zeigt auf `docker/certs/dev.crt`, damit Locust das selbstsignierte Zertifikat akzeptiert. Ein Backend, das nur im Compose-Netz erreichbar ist, braucht den veröffentlichten Host-Port.
+Das Ziel liest `BACKEND_PORT` aus `docker/.env` und prüft `https://127.0.0.1`. `REQUESTS_CA_BUNDLE` zeigt auf `docker/certs/dev-ca.crt`, damit Locust das Serverzertifikat über die Dev-Root-CA prüft. Ein Backend, das nur im Compose-Netz erreichbar ist, braucht den veröffentlichten Host-Port.
 
 Schichten, Marker und die Ablage der Testdateien stehen in [docs/rules/testing.md](../rules/testing.md).
 

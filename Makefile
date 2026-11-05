@@ -161,7 +161,9 @@ check-migrations: ## Fehlende Migrationen melden
 	$(COMPOSE) exec -T backend python manage.py makemigrations --check --dry-run
 
 prod: ## Produktions-Compose mit docker/.env.prod starten
+	./scripts/prepare_prod_tls.sh
 	$(PROD_COMPOSE) up -d --build
+	$(PROD_COMPOSE) restart proxy
 
 create_app: ## App anlegen. make create_app <appname>
 	python3 scripts/create_app.py $(APP_ARGS)
@@ -188,7 +190,7 @@ test-api: ## Nur API-Tests
 
 loadtest: ## Locust, Standard 100 Benutzer für 30s. LOCUST_USERS=10 make loadtest
 	@set -a && . docker/.env && set +a && \
-	REQUESTS_CA_BUNDLE=docker/certs/dev.crt backend/.venv/bin/locust -f backend/locustfile.py --headless \
+	REQUESTS_CA_BUNDLE=docker/certs/dev-ca.crt backend/.venv/bin/locust -f backend/locustfile.py --headless \
 	-u $(LOCUST_USERS) -r $(LOCUST_SPAWN_RATE) -t $(LOCUST_RUN_TIME) \
 	--host https://127.0.0.1:$$BACKEND_PORT
 

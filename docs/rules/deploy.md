@@ -29,7 +29,9 @@ Die Stufe `prod` läuft ohne root. Das Backend nutzt den Benutzer `app`, das Fro
 
 Das Frontend-Image führt `next build` aus, installiert die Laufzeit ohne Dev-Pakete und startet `next start`. Antworten tragen `X-Content-Type-Options`, `Referrer-Policy`, `X-Frame-Options`, `Permissions-Policy` und eine Content-Security-Policy. Skripte und Styles erlauben `'unsafe-inline'`, weil das Theme beim Laden ein Inline-Skript braucht und Tailwind Inline-Styles setzt.
 
-`docker/compose.prod.yml` veröffentlicht das Backend nicht. API und Admin laufen über den Frontend-Proxy oder `docker compose exec`. Redis und PostgreSQL bleiben im Compose-Netz.
+`docker/compose.prod.yml` veröffentlicht das Backend nicht. Der Dienst `proxy` bindet `FRONTEND_PORT` als HTTPS und setzt `X-Forwarded-Proto: https`. API und Admin laufen über das Frontend oder `docker compose exec`. Redis und PostgreSQL bleiben im Compose-Netz.
+
+`PROD_TLS_MODE=generate` erzeugt vor `make prod` eine eigene Root-CA und ein Serverzertifikat unter `docker/certs/prod/`. Die Namen sind dieselben wie in der Entwicklung, dazu die kommagetrennte Liste `PROD_CERT_DNS`. Clients importieren `docker/certs/prod/prod-ca.crt`. `PROD_TLS_MODE=own` kopiert `PROD_TLS_CERT` und `PROD_TLS_KEY` an den Proxy. Die Dev-CA gilt für diesen Stapel nicht. Dateien, Import und die beiden Modi stehen in [docs/tutorials/04-zertifikate.md](../tutorials/04-zertifikate.md).
 
 ## Prüfungen
 

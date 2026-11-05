@@ -88,12 +88,12 @@ jobs:
       - name: Frontend antwortet
         run: |
           for _ in $(seq 1 30); do
-            if curl -fsS "http://127.0.0.1:3000/anmelden" >/dev/null; then
+            if curl -fsS --cacert docker/certs/prod/prod-ca.crt "https://127.0.0.1:3000/anmelden" >/dev/null; then
               exit 0
             fi
             sleep 3
           done
-          docker compose --env-file docker/.env.prod -f docker/compose.prod.yml logs frontend
+          docker compose --env-file docker/.env.prod -f docker/compose.prod.yml logs proxy frontend
           exit 1
 
       - name: Stack stoppen

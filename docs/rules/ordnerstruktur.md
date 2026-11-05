@@ -16,9 +16,12 @@ jd_template/
   frontend/                Next.js
   docker/
     .env                   Host-Ports und Datenbankzugang
-    certs/                 selbstsigniertes Dev-Zertifikat, Schlüssel nicht im Git
+    certs/                 Dev-Root-CA und Serverzertifikat, Schlüssel nicht im Git
+    certs/prod/            Prod-Zertifikat, je nach PROD_TLS_MODE erzeugt oder kopiert
     compose.yml
+    compose.prod.yml
     proxy/nginx.conf       TLS-Abschluss für den Dev-Stack
+    proxy/nginx.prod.conf  TLS-Abschluss für den Prod-Stack
     backend/Dockerfile
     frontend/Dockerfile
   docs/

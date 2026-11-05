@@ -18,7 +18,7 @@ Node, PostgreSQL, Redis, pytest, Ruff und der Next.js-Build laufen in Containern
 | db | PostgreSQL 18 | 5432 | `POSTGRES_PORT` |
 | redis | Redis 8.10 | 6379 | `REDIS_PORT` |
 
-Der Host-Port ist die Tür auf der VM. Frontend und Backend sind dort HTTPS. Das Zertifikat ist selbstsigniert und gilt für `localhost` und `127.0.0.1`. Im Container bleiben Frontend und Backend bei HTTP. Django spricht die Datenbank über den Dienstnamen `db` auf Port 5432 an, Redis über `redis` auf Port 6379. Die Werte in `docker/.env` ändern die Tür auf der VM, den internen Port ändern sie nicht. Einzelheiten stehen in [Kapitel 2](02-umgebung-und-befehle.md).
+Der Host-Port ist die Tür auf der VM. Frontend und Backend sind dort HTTPS. Die Root-CA liegt in `docker/certs/dev-ca.crt` und wird auf dem Client installiert, von dem der Browser die Seite öffnet. Im Container bleiben Frontend und Backend bei HTTP. Django spricht die Datenbank über den Dienstnamen `db` auf Port 5432 an, Redis über `redis` auf Port 6379. Die Werte in `docker/.env` ändern die Tür auf der VM, den internen Port ändern sie nicht. Einzelheiten stehen in [Kapitel 2](02-umgebung-und-befehle.md).
 
 ## Größe der VM
 
@@ -172,7 +172,7 @@ Dieselbe Form für PostgreSQL (`5432`) und Redis (`6379`). Vom eigenen Rechner:
 ssh -L 3000:127.0.0.1:3000 -L 8000:127.0.0.1:8000 user@vm
 ```
 
-Danach ist das Frontend unter `https://127.0.0.1:3000` auf dem eigenen Rechner erreichbar. Die Cookies bleiben an diesen Rechner gebunden. Der Tunnel überträgt das Zertifikat der VM. Der Browser braucht dasselbe Vertrauen wie auf der VM selbst.
+Danach ist das Frontend unter `https://127.0.0.1:3000` auf dem eigenen Rechner erreichbar. Die Cookies bleiben an diesen Rechner gebunden. Auf diesem Rechner liegt dieselbe Root-CA `docker/certs/dev-ca.crt` im Vertrauensspeicher.
 
 Profil Entwicklung im eigenen Netz. Frontend und Backend bleiben an `0.0.0.0`, PostgreSQL und Redis an `127.0.0.1`. Zusätzlich filtert die Kette `DOCKER-USER`, weil UFW die an `0.0.0.0` gebundenen Ports nicht sieht. `--dport` ist hier der Port im Container, nach der Umleitung durch Docker, also `443` und `8443`, auch wenn `FRONTEND_PORT` auf der VM anders lautet.
 
@@ -254,7 +254,7 @@ Kollidiert ein Port, nur die passende Variable in `docker/.env` ändern. Ein bel
 docker compose --env-file docker/.env -f docker/compose.yml up -d
 ```
 
-Vorher schreibt `make dev` das selbstsignierte Zertifikat nach `docker/certs/`, falls es fehlt oder in weniger als 30 Tagen abläuft. Compose liest `docker/.env`, ersetzt die Variablen in `docker/compose.yml` und startet die fünf Dienste im Projekt `jd_template`.
+Vorher schreibt `make dev` die Root-CA und das Serverzertifikat nach `docker/certs/`, falls sie fehlen oder das Serverzertifikat in weniger als 30 Tagen abläuft. Compose liest `docker/.env`, ersetzt die Variablen in `docker/compose.yml` und startet die fünf Dienste im Projekt `jd_template`.
 
 ```mermaid
 sequenceDiagram
@@ -319,36 +319,19 @@ Mit den Ports aus der Vorlage, solange `docker/.env` sie nicht geändert hat:
 | Admin | `https://127.0.0.1:8000/admin/` |
 
 ```bash
-curl -fsS --cacert docker/certs/dev.crt https://127.0.0.1:8000/api/v1/health/
-curl -fsS --cacert docker/certs/dev.crt https://127.0.0.1:8000/api/v1/ready/
+curl -fsS --cacert docker/certs/dev-ca.crt https://127.0.0.1:8000/api/v1/health/
+curl -fsS --cacert docker/certs/dev-ca.crt https://127.0.0.1:8000/api/v1/ready/
 ```
 
 Health antwortet `{"status":"ok"}` und prüft keine Abhängigkeit. Ready antwortet mit `ok`, sobald Datenbank und Redis erreichbar sind, und mit HTTP 503, wenn eine der beiden Prüfungen fehlschlägt. Der Körper nennt dann `error` und keine Verbindungsdaten.
 
 Anmeldung im Frontend und im Django-Admin nutzen denselben Superuser aus `DJANGO_SUPERUSER_*`. Die Sitzung ist ein Cookie mit Secure-Flag. Cookies hängen am Hostnamen und am Schema, nicht am Port. Wer Frontend und Admin beide über `https://127.0.0.1` öffnet, teilt die Sitzung zwischen den beiden Ports. `http://` und `https://` teilen sie nicht.
 
-## Zertifikat vertrauen
+## Root-CA auf dem Client
 
-`docker/certs/dev.crt` ist selbstsigniert. Der Browser zeigt eine Warnung, bis das Zertifikat im Vertrauensspeicher liegt. `curl` umgeht das mit `--cacert docker/certs/dev.crt`.
+Die Datei für den Rechner, auf dem der Browser läuft, ist `docker/certs/dev-ca.crt`. Import, zusätzliche DNS-Namen über `DEV_CERT_DNS`, Erneuern und das Prod-Zertifikat stehen in [Kapitel 4](04-zertifikate.md).
 
-Auf der Ubuntu-VM, für Programme, die den Systemspeicher lesen:
-
-```bash
-sudo cp docker/certs/dev.crt /usr/local/share/ca-certificates/jd-template-dev.crt
-sudo update-ca-certificates
-```
-
-Chrome und Firefox bringen einen eigenen Speicher mit. Dort das Zertifikat als Zertifizierungsstelle importieren: in Chrome unter Einstellungen, Datenschutz und Sicherheit, Sicherheit, Zertifikate verwalten. Danach die Seite neu laden. Ein bereits geöffnetes Warnfenster merkt sich die Ablehnung für diese Sitzung.
-
-Das Zertifikat gilt 825 Tage für `DNS:localhost` und `IP:127.0.0.1`. `make dev` erneuert es, wenn weniger als 30 Tage bleiben. Ein neues Zertifikat braucht denselben Import erneut. Vorher die alten Dateien entfernen, wenn sofort ein neues entstehen soll:
-
-```bash
-rm -f docker/certs/dev.crt docker/certs/dev.key
-make certs
-make restart proxy
-```
-
-`DEBUG` bleibt in der Entwicklung an. Django setzt deshalb kein HSTS. Ein selbstsigniertes Zertifikat schreibt sich nicht für ein Jahr in den Browser. Die HTTPS-Umleitung von Django bleibt aus, weil die Container intern HTTP sprechen. Der Proxy ist die einzige TLS-Stelle. Die Produktion in `docker/compose.prod.yml` nutzt dieses Zertifikat nicht. Dort beendet der Nginx der VM das öffentliche Zertifikat.
+`DEBUG` bleibt in der Entwicklung an. Django setzt deshalb kein HSTS. Die HTTPS-Umleitung von Django bleibt aus, weil die Container intern HTTP sprechen. Der Proxy ist die einzige TLS-Stelle des Dev-Stacks.
 
 Ohne Sitzung leitet das Frontend auf `/anmelden`. Offen sind `/anmelden`, `/registrieren`, `/passwort-vergessen`, `/passwort-setzen` und `/email-bestaetigen`. Nach der Anmeldung öffnet `/dashboard`.
 
@@ -369,7 +352,7 @@ make down
 
 ## Produktion auf derselben VM
 
-Der Produktionsstapel nutzt `docker/compose.prod.yml` und `docker/.env.prod`. Backend, PostgreSQL und Redis veröffentlichen keinen Host-Port. Nur das Frontend bindet `FRONTEND_PORT`.
+Der Produktionsstapel nutzt `docker/compose.prod.yml` und `docker/.env.prod`. Backend, PostgreSQL und Redis veröffentlichen keinen Host-Port. Der Dienst `proxy` bindet `FRONTEND_PORT` als HTTPS.
 
 ```bash
 cp docker/.env.prod.example docker/.env.prod
@@ -386,46 +369,14 @@ Vor `make prod` in `docker/.env.prod` ersetzen:
 | `CSRF_TRUSTED_ORIGINS` | `https://example.com` |
 | `FRONTEND_ORIGIN` | `https://example.com`, ohne Pfad und ohne Schrägstrich am Ende |
 | `EMAIL_*` | SMTP-Server, der die Bestätigungs- und Passwort-Mails annimmt |
+| `PROD_TLS_MODE` | `generate` oder `own` |
+| `PROD_CERT_DNS` | weitere DNS-Namen, nur bei `generate`, kommagetrennt |
+| `PROD_TLS_CERT`, `PROD_TLS_KEY` | Pfade zum eigenen Zertifikat und Schlüssel, nur bei `own` |
+| `FRONTEND_PORT` | HTTPS-Port auf dem Host. Für einen öffentlichen Server oft `443` |
 
-`DEBUG=false` schaltet sichere Cookies, die HTTPS-Umleitung und HSTS ein. Django akzeptiert die Verbindung als HTTPS, wenn `X-Forwarded-Proto` den Wert `https` hat (`SECURE_PROXY_SSL_HEADER`). Ein vom Client frei gesetzter Wert darf den Proxy nicht erreichen. Der Proxy überschreibt den Header.
+`DEBUG=false` schaltet sichere Cookies, die HTTPS-Umleitung und HSTS ein. Django akzeptiert die Verbindung als HTTPS, wenn `X-Forwarded-Proto` den Wert `https` hat. Der Prod-Proxy setzt den Header fest auf `https`.
 
-Nginx auf der VM, Zertifikat über Certbot, Frontend nur am Loopback:
-
-```bash
-sudo apt install -y nginx certbot python3-certbot-nginx
-sudo ufw allow 'Nginx Full'
-```
-
-In `docker/compose.prod.yml` die Veröffentlichung des Frontends auf das Loopback legen:
-
-```yaml
-ports:
-  - "127.0.0.1:${FRONTEND_PORT}:3000"
-```
-
-Nginx-Site, `example.com` durch den echten Namen ersetzen:
-
-```nginx
-server {
-    listen 80;
-    server_name example.com;
-
-    location / {
-        proxy_pass http://127.0.0.1:3000;
-        proxy_set_header Host $host;
-        proxy_set_header X-Forwarded-Proto $scheme;
-        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
-    }
-}
-```
-
-```bash
-sudo nginx -t
-sudo systemctl reload nginx
-sudo certbot --nginx -d example.com
-```
-
-Certbot ergänzt den TLS-Server. Danach steht in der HTTPS-Site `X-Forwarded-Proto https`, weil `$scheme` dort `https` ist.
+`PROD_TLS_MODE=generate` erzeugt eine eigene Root-CA und hängt `PROD_CERT_DNS` an die festen Namen. `PROD_TLS_MODE=own` verwendet `PROD_TLS_CERT` und `PROD_TLS_KEY`. Ablauf, Dateien und Import stehen in [Kapitel 4](04-zertifikate.md).
 
 ```bash
 make prod
@@ -435,9 +386,9 @@ make prod
 
 ### Header bis zu Django durchreichen
 
-Nginx auf der VM setzt `X-Forwarded-Proto` auf der Verbindung zum Frontend. Next.js ruft Django unter `http://backend:8000` auf. Der Route-Handler `frontend/src/app/accounts/[...path]/route.ts` reicht `origin`, `referer` und `x-forwarded-proto` zusammen mit Cookie und CSRF-Token weiter. `frontend/src/app/media/[...path]/route.ts` reicht `x-forwarded-proto` ebenfalls weiter. Ein neuer Proxy aus [Kapitel 3](03-eigene-implementierung.md) behält diese Header.
+Der Prod-Proxy setzt `X-Forwarded-Proto: https` auf der Verbindung zum Frontend. Next.js ruft Django unter `http://backend:8000` auf. Der Route-Handler `frontend/src/app/accounts/[...path]/route.ts` reicht `origin`, `referer` und `x-forwarded-proto` zusammen mit Cookie und CSRF-Token weiter. `frontend/src/app/media/[...path]/route.ts` reicht `x-forwarded-proto` ebenfalls weiter. Ein neuer Proxy aus [Kapitel 3](03-eigene-implementierung.md) behält diese Header.
 
-Fehlt der Header bei Django und ist `DEBUG` aus, antwortet Django auf unsichere Methoden mit einer Weiterleitung auf HTTPS. Der Healthcheck setzt den Header selbst. Die öffentliche Nginx-Site muss ihn setzen, sonst kommt bei Next.js nichts an, das der Route-Handler weitergeben kann.
+Fehlt der Header bei Django und ist `DEBUG` aus, antwortet Django auf unsichere Methoden mit einer Weiterleitung auf HTTPS. Der Healthcheck setzt den Header selbst.
 
 Bereitschaft aus dem Compose-Netz, ohne den Backend-Port zu veröffentlichen:
 
@@ -446,10 +397,10 @@ docker compose --env-file docker/.env.prod -f docker/compose.prod.yml exec -T ba
   python -c "import urllib.request; urllib.request.urlopen(urllib.request.Request('http://127.0.0.1:8000/api/v1/ready/', headers={'X-Forwarded-Proto': 'https'}))"
 ```
 
-Von außen zählt die Anmeldeseite:
+Von außen zählt die Anmeldeseite. Bei `PROD_TLS_MODE=generate` prüft `curl` mit der Prod-Root-CA. Bei `own` prüft der öffentliche Vertrauensspeicher.
 
 ```bash
-curl -fsSI https://example.com/anmelden
+curl -fsS --cacert docker/certs/prod/prod-ca.crt "https://127.0.0.1:${FRONTEND_PORT}/anmelden"
 ```
 
 Betrieb, Cookies und die beiden Checks beschreibt [docs/rules/deploy.md](../rules/deploy.md). Vor einem öffentlichen Start:
@@ -483,7 +434,8 @@ make restart dev
 | Frontend-Log bleibt bei `npm ci` | Erster Lauf. `make logs frontend` weiter beobachten. Abbruch mit vollem Log: Platte prüfen (`df -h`) |
 | `ready` liefert 503 | `make logs db` und `make logs redis`. Danach `make logs backend` |
 | Seite lädt, Anmeldung leitet im Kreis | `CSRF_TRUSTED_ORIGINS` enthält die genaue Browser-Adresse inklusive `https` und Port. Der Proxy muss laufen, sonst ist der Host-Port zu |
-| `ERR_CERT_AUTHORITY_INVALID` | Selbstsigniertes Zertifikat. `docker/certs/dev.crt` importieren oder `curl` mit `--cacert` aufrufen |
+| `ERR_CERT_AUTHORITY_INVALID` | Root-CA importieren. Welche Datei, steht in [Kapitel 4](04-zertifikate.md) |
+| `ERR_CERT_COMMON_NAME_INVALID` | Den aufgerufenen Namen in `DEV_CERT_DNS` oder `PROD_CERT_DNS` eintragen. Ablauf in [Kapitel 4](04-zertifikate.md) |
 | Nginx startet nicht, Log sagt das Zertifikat fehlt | `make certs` und `make restart proxy` |
 | UFW ist an, SSH bricht ab | Nur von der Konsole der VM: `sudo ufw allow OpenSSH` und `sudo ufw enable`. Die Docker-Ports bleiben davon unberührt |
 | Port ist in UFW zu und trotzdem offen | Compose bindet ihn an `0.0.0.0`. Auf `127.0.0.1` umstellen oder `DOCKER-USER` filtern |

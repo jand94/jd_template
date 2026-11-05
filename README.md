@@ -62,7 +62,7 @@ Der erste Lauf baut die Images, installiert Python- und npm-Abhängigkeiten und 
 make urls
 ```
 
-Mit den Ports aus der Vorlage. Das Zertifikat ist selbstsigniert. `curl` prüft es mit `--cacert docker/certs/dev.crt`. Der Browser warnt, bis dasselbe Zertifikat als vertrauenswürdig importiert ist. Die Schritte stehen in [docs/tutorials/01-ubuntu-vm.md](docs/tutorials/01-ubuntu-vm.md).
+Mit den Ports aus der Vorlage. Auf den Client, von dem der Browser die Seite öffnet, gehört die Root-CA `docker/certs/dev-ca.crt`. `curl` prüft damit über `--cacert docker/certs/dev-ca.crt`. Import, zusätzliche DNS-Namen und das Prod-Zertifikat stehen in [docs/tutorials/04-zertifikate.md](docs/tutorials/04-zertifikate.md).
 
 | Oberfläche | Adresse |
 |---|---|
@@ -201,6 +201,7 @@ Der Index steht in [docs/README.md](docs/README.md). Anleitungen führen durch M
 | [docs/tutorials/01-ubuntu-vm.md](docs/tutorials/01-ubuntu-vm.md) | Ubuntu-VM, Docker, Compose, UFW, erster Start |
 | [docs/tutorials/02-umgebung-und-befehle.md](docs/tutorials/02-umgebung-und-befehle.md) | `.env`, weitere Datenbanken, Make |
 | [docs/tutorials/03-eigene-implementierung.md](docs/tutorials/03-eigene-implementierung.md) | App, Feature, Proxy, Drittsystem |
+| [docs/tutorials/04-zertifikate.md](docs/tutorials/04-zertifikate.md) | Dev- und Prod-Zertifikate, DNS-Namen, Import der Root-CA |
 | [docs/rules/README.md](docs/rules/README.md) | Index der verbindlichen Regeln |
 | [docs/rules/ordnerstruktur.md](docs/rules/ordnerstruktur.md) | Repository, Apps, Pakete, API-Versionen, Frontend-Module |
 | [docs/rules/dev-stack.md](docs/rules/dev-stack.md) | Compose, Ports, Volumes, Make |

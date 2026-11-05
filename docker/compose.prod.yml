@@ -78,11 +78,19 @@ services:
       API_DESCRIPTION: ${API_DESCRIPTION}
       API_VERSION: ${API_VERSION}
       API_ORIGIN: http://backend:8000
-    ports:
-      - "${FRONTEND_PORT}:3000"
     depends_on:
       backend:
         condition: service_healthy
+
+  proxy:
+    image: nginx:1.28-alpine
+    volumes:
+      - ./proxy/nginx.prod.conf:/etc/nginx/nginx.conf:ro
+      - ./certs/prod:/certs:ro
+    ports:
+      - "${FRONTEND_PORT}:443"
+    depends_on:
+      - frontend
 
 volumes:
   postgres_data:

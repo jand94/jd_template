@@ -2,6 +2,12 @@ docker/.env
 docker/.env.prod
 docker/certs/*.crt
 docker/certs/*.key
+docker/certs/*.srl
+docker/certs/*.ext
+docker/certs/prod/*.crt
+docker/certs/prod/*.key
+docker/certs/prod/*.srl
+docker/certs/prod/*.ext
 .DS_Store
 .hypothesis/
 .ruff_cache/

@@ -10,7 +10,7 @@ Der lokale Stack ist Docker Compose. Host-Ports und der Datenbankzugang stehen i
 | db | PostgreSQL 18 | `POSTGRES_PORT` | 5432 |
 | redis | Redis 8.10 | `REDIS_PORT` | 6379 |
 
-`make dev` erzeugt `docker/certs/dev.crt` und `docker/certs/dev.key`, wenn sie fehlen oder in weniger als 30 Tagen ablaufen. Der Dienst `proxy` beendet TLS mit diesem Zertifikat. Der Browser spricht `https://127.0.0.1:<FRONTEND_PORT>` und `https://127.0.0.1:<BACKEND_PORT>`. Zwischen den Containern bleibt HTTP. Nginx setzt `X-Forwarded-Proto: https` und schreibt Weiterleitungen von `http://` auf `https://` um. Session- und CSRF-Cookies tragen im Dev-Stack das Secure-Flag. `DEBUG` bleibt an, deshalb bleiben HSTS und die HTTPS-Umleitung von Django aus.
+`make dev` erzeugt die Root-CA `docker/certs/dev-ca.crt` und das davon signierte Serverzertifikat `docker/certs/dev.crt`. Auf den Client kommt nur die Root-CA. Der Dienst `proxy` beendet TLS mit dem Serverzertifikat. Der Browser spricht `https://127.0.0.1:<FRONTEND_PORT>` und `https://127.0.0.1:<BACKEND_PORT>`. Zwischen den Containern bleibt HTTP. Nginx setzt `X-Forwarded-Proto: https` und schreibt Weiterleitungen von `http://` auf `https://` um. Session- und CSRF-Cookies tragen im Dev-Stack das Secure-Flag. `DEBUG` bleibt an, deshalb bleiben HSTS und die HTTPS-Umleitung von Django aus.
 
 Im Container spricht Django die Datenbank über `POSTGRES_HOST=db` und Redis über `REDIS_HOST=redis` an, jeweils auf dem internen Port. Die Variablen in `.env` sind die Ports auf dem Rechner. `REDIS_PASSWORD` gilt für Redis und den Django-Cache. `make redis-cli` nutzt dasselbe Passwort über `REDISCLI_AUTH`.
 
