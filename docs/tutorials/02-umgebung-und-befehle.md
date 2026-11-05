@@ -310,6 +310,8 @@ class Customer(models.Model):
         db_table = "customers"
 ```
 
+`Customer` erbt nicht `StandardModel`. Die Tabelle gehört dem Drittsystem, Schlüssel und Spalten stehen schon fest. `AuditedModel` schreibt nichts in diese Datenbank.
+
 `apps/erp/models/__init__.py` importiert `Customer`. Ohne diesen Import registriert Django das Modell nicht.
 
 Lesen, in einem Service der Fach-App, die die Zahl lokal speichert:

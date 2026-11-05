@@ -14,6 +14,7 @@ from apps.accounts.models.validators import (
     validate_phone_number,
     validate_timezone_name,
 )
+from apps.common.models.audited import AuditedModel
 
 
 class AccountUserManager(UserManager):
@@ -26,13 +27,21 @@ class AccountUserManager(UserManager):
         return super()._create_user_object(username, email, password, **extra_fields)
 
 
-class AbstractUser(DjangoAbstractUser):
+class AbstractUser(AuditedModel, DjangoAbstractUser):
     """Vollständiges abstraktes Benutzerkonto mit Profil- und Adressdaten.
 
     Enthält die Auth-Funktionen von Djangos AbstractUser (Benutzername,
     Passwort, Rechte, Gruppen, Staff- und Aktiv-Status) und ergänzt
     persönliche Angaben. Konkrete Projekte erben davon oder nutzen `User`.
+
+    Der Schlüssel bleibt der von Django, nicht die UUID aus `StandardModel`.
+    `date_joined` und `last_login` bleiben die Zeitfelder der Anmeldung.
+    Änderungen schreibt `AuditedModel` in die gemeinsame Audit-Spur.
+    `last_login` ist kein fachlicher Edit. `password` erscheint nur als
+    `[redacted]`.
     """
+
+    audit_exclude = ("last_login",)
 
     email = models.EmailField(
         _("email address"),

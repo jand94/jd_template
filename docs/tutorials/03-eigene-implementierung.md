@@ -13,7 +13,7 @@ make create_feature billing
 
 Der Name beginnt mit einem Kleinbuchstaben und enthält nur Kleinbuchstaben, Ziffern und Unterstriche. Reserviert für Apps sind `apps`, `backend`, `config`, `django`, `test` und `tests`, dazu jedes Python-Schlüsselwort. Reserviert für Features sind zusätzlich die bestehenden Routen, darunter `accounts`, `anmelden`, `dashboard`, `profil` und `system`. Die vollständige Liste steht in `scripts/create_feature.py`.
 
-App und Feature tragen denselben Namen, bleiben aber getrennte Module. Eine App importiert keine andere App über deren interne Module. Ein Feature importiert kein anderes Feature. Die öffentliche Tür der App ist ihre HTTP-API, die des Features ist `index.ts`.
+App und Feature tragen denselben Namen, bleiben aber getrennte Module. Eine Fach-App importiert keine andere Fach-App über deren interne Module. `apps.common` ist die Ausnahme: Modelle und die Funktionen `record` und `audit_context` kommen von dort. Ein Feature importiert kein anderes Feature. Die öffentliche Tür der App ist ihre HTTP-API, die des Features ist `index.ts`.
 
 ## Was die Generatoren anlegen
 
@@ -71,26 +71,23 @@ Der Stack zeigt nach den beiden Befehlen eine leere Überschrift und eine leere 
 `backend/apps/billing/models/invoice.py`:
 
 ```python
-from django.conf import settings
 from django.db import models
 
+from apps.common.models import AuditedModel, StandardModel
 
-class Invoice(models.Model):
+
+class Invoice(StandardModel, AuditedModel):
     number = models.CharField(max_length=32, unique=True)
     title = models.CharField(max_length=200)
     amount_cents = models.PositiveIntegerField()
-    created_by = models.ForeignKey(
-        settings.AUTH_USER_MODEL,
-        on_delete=models.PROTECT,
-        related_name="invoices",
-    )
-    created_at = models.DateTimeField(auto_now_add=True)
 
     class Meta:
         ordering = ["-created_at"]
 ```
 
-`AUTH_USER_MODEL` ist `accounts.User`. Der Verweis läuft über diese Einstellung, nicht über einen Import von `apps.accounts.models` in ein anderes Fachmodul, wenn sich das vermeiden lässt. `settings.AUTH_USER_MODEL` hält die Abhängigkeit an Django.
+`StandardModel` bringt den UUID-Schlüssel, `created_at`, `updated_at`, `created_by` und `updated_by` mit. `AuditedModel` protokolliert das Anlegen und jede spätere Änderung. Die Middleware setzt Autorin oder Autor aus der Sitzung. Der Service übergibt das Konto nicht noch einmal. Die Regel dazu steht in [docs/rules/ordnerstruktur.md](../rules/ordnerstruktur.md).
+
+`created_by` zeigt auf `AUTH_USER_MODEL`, also `accounts.User`. Der Verweis läuft über diese Einstellung, nicht über einen Import von `apps.accounts.models` in ein anderes Fachmodul, wenn sich das vermeiden lässt.
 
 `backend/apps/billing/models/__init__.py` registriert das Modell. Django findet es nur über diesen Import:
 
@@ -123,12 +120,11 @@ from apps.billing.models import Invoice
 
 
 @transaction.atomic
-def create_invoice(*, number: str, title: str, amount_cents: int, user) -> Invoice:
+def create_invoice(*, number: str, title: str, amount_cents: int) -> Invoice:
     return Invoice.objects.create(
         number=number,
         title=title,
         amount_cents=amount_cents,
-        created_by=user,
     )
 ```
 
@@ -157,7 +153,15 @@ from apps.billing.models import Invoice
 class InvoiceSerializer(serializers.ModelSerializer):
     class Meta:
         model = Invoice
-        fields = ["id", "number", "title", "amount_cents", "created_at"]
+        fields = [
+            "id",
+            "number",
+            "title",
+            "amount_cents",
+            "created_at",
+            "updated_at",
+            "created_by",
+        ]
         read_only_fields = fields
 
 
@@ -191,7 +195,7 @@ class InvoiceListCreateView(ListCreateAPIView):
     def post(self, request):
         incoming = InvoiceCreateSerializer(data=request.data)
         incoming.is_valid(raise_exception=True)
-        invoice = create_invoice(user=request.user, **incoming.validated_data)
+        invoice = create_invoice(**incoming.validated_data)
         return Response(InvoiceSerializer(invoice).data, status=201)
 ```
 
@@ -243,11 +247,14 @@ from apps.billing.services import create_invoice
 pytestmark = pytest.mark.unit
 
 
-def test_create_invoice_stores_the_signed_in_user():
-    user = object()
+def test_create_invoice_persists_the_submitted_fields():
     with patch("apps.billing.services.invoices.Invoice.objects.create") as create:
-        create_invoice(number="R-1", title="Beratung", amount_cents=100, user=user)
-    assert create.call_args.kwargs["created_by"] is user
+        create_invoice(number="R-1", title="Beratung", amount_cents=100)
+    assert create.call_args.kwargs == {
+        "number": "R-1",
+        "title": "Beratung",
+        "amount_cents": 100,
+    }
 ```
 
 Persistenz gehört in `tests/integration` mit `@pytest.mark.integration` und `@pytest.mark.django_db`. Der API-Test:
@@ -314,11 +321,13 @@ import { useEffect, useState } from "react";
 import { api } from "@/features/billing/api/client";
 
 type Invoice = {
-  id: number;
+  id: string;
   number: string;
   title: string;
   amount_cents: number;
   created_at: string;
+  updated_at: string;
+  created_by: number | null;
 };
 
 type InvoicePage = {
@@ -404,7 +413,7 @@ from django.core.exceptions import ValidationError
 from apps.erp.models import Customer
 
 
-def create_invoice(*, number, title, amount_cents, customer_id, user) -> Invoice:
+def create_invoice(*, number, title, amount_cents, customer_id) -> Invoice:
     if not Customer.objects.filter(pk=customer_id).exists():
         raise ValidationError({"customer_id": "Der Kunde ist im Bestand nicht vorhanden."})
     return Invoice.objects.create(
@@ -412,7 +421,6 @@ def create_invoice(*, number, title, amount_cents, customer_id, user) -> Invoice
         title=title,
         amount_cents=amount_cents,
         customer_id=customer_id,
-        created_by=user,
     )
 ```
 
@@ -427,11 +435,12 @@ Der Serializer nimmt `customer_id` im Schreibkörper auf und gibt es im Lesekör
 | Seite importiert `@/features/billing` | ja, nur den Barrel |
 | Feature importiert `@/features/accounts` | nein. ESLint-Regel `features/boundaries` |
 | `components/`, `lib/`, `config/` importieren ein Feature | nein |
-| App importiert `apps.accounts.models` aus einer anderen App | nur über eine öffentliche Funktion in `apps.accounts.services`, und auch das nur, wenn die Fachlichkeit es verlangt |
+| Fach-App importiert `apps.common.models` oder `apps.common.services` | ja |
+| Fach-App importiert `apps.accounts.models` aus einer anderen App | nur über eine öffentliche Funktion in `apps.accounts.services`, und auch das nur, wenn die Fachlichkeit es verlangt |
 | HTTP-Schicht importiert `apps.billing.services` | ja |
 | Service importiert einen Serializer | nein. Die Richtung läuft von der View zum Service |
 
-Eine gemeinsame Hilfsfunktion ohne Fachlichkeit liegt in der App, die sie besitzt, oder in einem Modul unter `backend/backend`, wenn sie zur Projektkonfiguration gehört. Ein neues Querschnittsmodul entsteht mit `make create_app`, nicht als Importnetz zwischen Features.
+Gemeinsame Modelle und die Audit-Spur liegen in `apps.common`. Eine Hilfsfunktion ohne Fachlichkeit, die nur eine App braucht, bleibt in dieser App. Gehört sie zur Projektkonfiguration, liegt sie unter `backend/backend`. Ein neues Querschnittsmodul entsteht mit `make create_app`, nicht als Importnetz zwischen Features. `common` bleibt die erste interne App.
 
 ## Checkliste vor dem ersten echten Datensatz
 

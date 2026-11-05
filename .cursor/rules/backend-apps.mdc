@@ -39,3 +39,15 @@ apps/<app>/
 - Neue Versionen sind Geschwister von `v1` und werden in der App-`urls.py` ergänzt.
 - Neue Apps mit `make create_app <appname>` anlegen.
 - Tests liegen in `tests/unit`, `tests/integration` und `tests/api`. `make test` startet pytest, `make loadtest` Locust.
+
+## Common-Layer
+
+`apps.common` steht in `INSTALLED_APPS` vor den anderen internen Apps. Fach-Apps importieren daraus Modelle und Services. `common` importiert keine Fach-App.
+
+Neue Fachmodelle erben `StandardModel` und `AuditedModel` aus `apps.common.models`. Damit gibt es UUID, `created_at`, `updated_at`, `created_by`, `updated_by` und eine Audit-Spur. Diese Felder nicht noch einmal anlegen. `created_by` und `updated_by` setzt der Audit-Kontext der Middleware, sobald ein Konto angemeldet ist.
+
+`audit_exclude` nennt Felder, die nicht in der Spur stehen. Felder mit `password`, `secret` oder `token` im Namen werden gespeichert, der Wert nur als `[redacted]`. Ereignisse ohne Modellzeile schreibt `record()` aus `apps.common.services`. `QuerySet.update()` und `QuerySet.delete()` lösen keine Signale aus und brauchen einen eigenen `record()`-Aufruf.
+
+Ausnahme ist das austauschbare Benutzerkonto: es erbt `AuditedModel`, behält aber Djangos Schlüssel, `date_joined` und `last_login`. `last_login` steht in `audit_exclude`. Unmanaged Modelle einer fremden Datenbank erben `models.Model` und nicht `StandardModel`.
+
+Die Audit-API `GET /common/v1/audit/` ist nur lesbar und verlangt `common.view_auditevent`.

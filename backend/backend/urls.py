@@ -28,6 +28,7 @@ urlpatterns = [
     path("api/", include("apps.api.urls")),
     path("api-auth/", include("rest_framework.urls")),
     path("accounts/", include("apps.accounts.urls")),
+    path("common/", include("apps.common.urls")),
 ]
 
 if settings.SERVE_MEDIA:

@@ -80,6 +80,31 @@ Die HTTP-Basis einer App ist `/<app>/v1/`. Eine neue Version ist ein Geschwister
 
 `permissions`, `schema`, `serializers`, `services` und `views` gehören zur Version. Domänenlogik, die keine HTTP-Schicht ist, liegt in `apps/<app>/services` und `apps/<app>/models`.
 
+## Common
+
+`apps.common` ist die gemeinsame Schicht für alle Fach-Apps. In `INSTALLED_APPS` steht `apps.common.apps.CommonConfig` vor den anderen internen Apps. Fach-Apps importieren `apps.common.models` und `apps.common.services`. `common` importiert keine Fach-App. Eine zweite gemeinsame App entsteht nicht neben `common`, sondern darin, solange die Funktion keine eigene Fachlichkeit hat.
+
+Ein neues Fachmodell erbt `StandardModel` und `AuditedModel`:
+
+```python
+from apps.common.models import AuditedModel, StandardModel
+
+
+class Invoice(StandardModel, AuditedModel):
+    number = models.CharField(max_length=32, unique=True)
+
+    class Meta:
+        ordering = ["-created_at"]
+```
+
+`StandardModel` liefert den UUID-Schlüssel, `created_at`, `updated_at`, `created_by` und `updated_by`. Dieselben Felder nicht erneut deklarieren. `created_by` und `updated_by` füllt der Audit-Kontext, wenn die Middleware ein angemeldetes Konto sieht. `AuditedModel` schreibt Anlegen, Ändern, Löschen und M2M-Änderungen in die Audit-Spur. `audit_exclude` lässt Felder weg. Namen mit `password`, `secret` oder `token` bleiben in der Spur, der Wert steht als `[redacted]`.
+
+`record()` aus `apps.common.services` ist der Weg für Ereignisse ohne Modellzeile, zum Beispiel eine fachliche Freigabe. `QuerySet.update()` und `QuerySet.delete()` umgehen die Signale. Dafür gibt es einen eigenen `record()`-Aufruf.
+
+Das austauschbare Benutzerkonto erbt `AuditedModel`, aber nicht `StandardModel`. Schlüssel, `date_joined` und `last_login` bleiben die von Django. `last_login` steht auf `audit_exclude`. Ein unmanaged Modell auf einer fremden Datenbank erbt `models.Model`, trägt `managed = False` und übernimmt weder UUID noch Autorenschaft aus `common`.
+
+`GET /common/v1/audit/` und `GET /common/v1/audit/<uuid>/` sind nur lesbar. Das Recht ist `common.view_auditevent`. Schreiben aus der API gibt es nicht.
+
 ## Frontend
 
 Anwendungscode liegt in `frontend/src`. `package.json`, `next.config.ts` und ESLint bleiben in `frontend/`. Der Alias `@/*` zeigt auf `./src/*`.

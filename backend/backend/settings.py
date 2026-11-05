@@ -82,6 +82,7 @@ INSTALLED_APPS = [
     "rest_framework",
     "drf_spectacular",
     # interne Apps
+    "apps.common.apps.CommonConfig",
     "apps.api.apps.ApiConfig",
     "apps.accounts.apps.AccountsConfig",
 ]
@@ -96,6 +97,7 @@ MIDDLEWARE = [
     "django.middleware.common.CommonMiddleware",
     "django.middleware.csrf.CsrfViewMiddleware",
     "django.contrib.auth.middleware.AuthenticationMiddleware",
+    "apps.common.middleware.AuditContextMiddleware",
     "django.contrib.messages.middleware.MessageMiddleware",
     "django.middleware.clickjacking.XFrameOptionsMiddleware",
 ]
@@ -261,6 +263,7 @@ REST_FRAMEWORK = {
         "accounts-reset": "5/minute",
         "accounts-password-change": "10/minute",
         "accounts-profile": "30/minute",
+        "common-audit": "60/minute",
     },
 }
 
@@ -270,6 +273,10 @@ SPECTACULAR_SETTINGS = {
     "VERSION": API_VERSION,
     "SERVE_INCLUDE_SCHEMA": False,
     "TAGS": [
+        {
+            "name": "Common",
+            "description": "Gemeinsame Standards, darunter die nur lesbare Audit-Spur.",
+        },
         {
             "name": "Accounts",
             "description": "Registrierung, Sitzung und Profil des Benutzerkontos.",
