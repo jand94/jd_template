@@ -19,7 +19,9 @@ jd_template/
     compose.yml
     backend/Dockerfile
     frontend/Dockerfile
-  docs/rules/
+  docs/
+    tutorials/             Anleitungen: Maschine, Umgebung, eigene Module
+    rules/                 verbindliche Regeln
   scripts/create_app.py
   Makefile
 ```

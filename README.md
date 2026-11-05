@@ -8,8 +8,8 @@ Lokal läuft der Stack über Docker Compose: Backend, Frontend, PostgreSQL und R
 
 | Werkzeug | Wofür |
 |---|---|
-| Docker und Docker Compose | Images, Container, Volumes |
-| Make | Ziele in der [Makefile](Makefile) |
+| Docker und Docker Compose | Images, Container, Volumes. Installation auf einer Ubuntu-VM, UFW und der erste Start: [docs/tutorials/01-ubuntu-vm.md](docs/tutorials/01-ubuntu-vm.md) |
+| Make | Ziele in der [Makefile](Makefile). Nachschlagewerk: [docs/tutorials/02-umgebung-und-befehle.md](docs/tutorials/02-umgebung-und-befehle.md) |
 | Python 3 | `make create_app` und `make create_feature` laufen auf dem Host |
 | Git | Repository klonen |
 
@@ -194,8 +194,13 @@ Produktion startet über `make prod`, nachdem `docker/.env.prod.example` nach `d
 
 ## Dokumentation
 
+Der Index steht in [docs/README.md](docs/README.md). Anleitungen führen durch Maschine, Umgebung und eigene Module. Die Regeln bleiben die verbindliche Form.
+
 | Datei | Inhalt |
 |---|---|
+| [docs/tutorials/01-ubuntu-vm.md](docs/tutorials/01-ubuntu-vm.md) | Ubuntu-VM, Docker, Compose, UFW, erster Start |
+| [docs/tutorials/02-umgebung-und-befehle.md](docs/tutorials/02-umgebung-und-befehle.md) | `.env`, weitere Datenbanken, Make |
+| [docs/tutorials/03-eigene-implementierung.md](docs/tutorials/03-eigene-implementierung.md) | App, Feature, Proxy, Drittsystem |
 | [docs/rules/README.md](docs/rules/README.md) | Index der verbindlichen Regeln |
 | [docs/rules/ordnerstruktur.md](docs/rules/ordnerstruktur.md) | Repository, Apps, Pakete, API-Versionen, Frontend-Module |
 | [docs/rules/dev-stack.md](docs/rules/dev-stack.md) | Compose, Ports, Volumes, Make |
@@ -214,7 +219,7 @@ frontend/                Next.js, Anwendungscode in src/
   src/lib/api.ts         gemeinsamer Client
   src/components/        UI ohne Fachlichkeit
 docker/                  Compose, .env.example, Dockerfiles
-docs/rules/              Ordnerstruktur, Tests, Dev-Stack
+docs/                    Anleitungen und Regeln
 scripts/                 create_app.py, create_feature.py
 .github/workflows/       CI
 Makefile

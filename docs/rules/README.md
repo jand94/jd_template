@@ -1,6 +1,6 @@
 # Regeln
 
-Verbindliche Basis für dieses Repository.
+Verbindliche Basis für dieses Repository. Der Ablauf von der leeren Ubuntu-VM bis zum eigenen Modul steht in [den Anleitungen](../tutorials/README.md). Der Index beider Bereiche ist [docs/README.md](../README.md).
 
 | Datei | Inhalt |
 |---|---|
