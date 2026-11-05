@@ -1,6 +1,32 @@
+from django.conf import settings
+from drf_spectacular.drainage import set_override
+from drf_spectacular.extensions import OpenApiAuthenticationExtension
 from drf_spectacular.utils import OpenApiParameter, extend_schema
 
+from apps.common.api.v1.authentication import CommonSessionAuthentication
+
 COMMON_TAG = "Common"
+
+# Dieselbe Sitzung wie bei Accounts. Spectacular vergleicht die Klassen, nicht die Definition.
+set_override(CommonSessionAuthentication, "suppress_collision_warning", True)
+
+
+class CommonSessionAuthenticationScheme(OpenApiAuthenticationExtension):
+    target_class = "apps.common.api.v1.authentication.CommonSessionAuthentication"
+    name = "sessionAuth"
+    priority = -1
+
+    def get_security_definition(self, auto_schema):
+        return {
+            "type": "apiKey",
+            "in": "cookie",
+            "name": settings.SESSION_COOKIE_NAME,
+            "description": (
+                "Django session cookie. Unsafe requests from a browser also send "
+                "the CSRF token in the X-CSRFToken header."
+            ),
+        }
+
 
 AUDIT_LIST_PARAMETERS = [
     OpenApiParameter(

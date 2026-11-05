@@ -10,6 +10,8 @@ Der Dev-Stack bleibt `make dev`. Auslieferung nutzt dieselben Images mit dem Zie
 
 `REDIS_PASSWORD` schützt Redis. Django hängt das Passwort an die Cache-URL. `FRONTEND_ORIGIN` ist die Browser-Adresse in Links für Passwort und E-Mail-Bestätigung, zum Beispiel `https://example.com`.
 
+`ALLOWED_HOSTS` nennt den öffentlichen Host. `localhost`, `127.0.0.1` und `backend` bleiben zusätzlich erlaubt, weil der Healthcheck und der Next-Proxy Django unter diesen Namen erreichen.
+
 Sobald `DEBUG` aus ist, verlangt Django einen `SECRET_KEY`. Session- und CSRF-Cookies werden dann nur über HTTPS gesendet, HTTP wird auf HTTPS umgeleitet, und HSTS ist an. Der TLS-Abschluss muss `X-Forwarded-Proto` setzen und einen vom Client gelieferten Wert verwerfen. `SECURE_PROXY_SSL_HEADER` erwartet genau diesen Header.
 
 `CSRF_COOKIE_HTTPONLY` bleibt aus, weil der Browser-Client das Cookie selbst liest. `SameSite` ist `Lax`.

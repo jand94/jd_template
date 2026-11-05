@@ -365,7 +365,7 @@ Vor `make prod` in `docker/.env.prod` ersetzen:
 | `SECRET_KEY` | Ausgabe von `secrets.token_urlsafe(64)` |
 | `POSTGRES_PASSWORD`, `REDIS_PASSWORD`, `DJANGO_SUPERUSER_PASSWORD` | eigene lange Werte |
 | `DEBUG` | `false`, die Datei setzt das bereits |
-| `ALLOWED_HOSTS` | öffentlicher Hostname, zum Beispiel `example.com` |
+| `ALLOWED_HOSTS` | öffentlicher Hostname, zum Beispiel `example.com`. `localhost`, `127.0.0.1` und `backend` bleiben zusätzlich erlaubt |
 | `CSRF_TRUSTED_ORIGINS` | `https://example.com` |
 | `FRONTEND_ORIGIN` | `https://example.com`, ohne Pfad und ohne Schrägstrich am Ende |
 | `EMAIL_*` | SMTP-Server, der die Bestätigungs- und Passwort-Mails annimmt |

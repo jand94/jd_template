@@ -161,7 +161,8 @@ Weitere Namen aus `settings.py`, ohne Zeile in der Vorlage:
 - `DEBUG=false`
 - `SECRET_KEY` als Platzhalter, der vor dem Start ersetzt wird
 - SMTP statt Konsole
-- `ALLOWED_HOSTS`, `CSRF_TRUSTED_ORIGINS`, `FRONTEND_ORIGIN` auf den öffentlichen Namen
+- `ALLOWED_HOSTS` nennt den öffentlichen Namen. `localhost`, `127.0.0.1` und `backend` bleiben zusätzlich erlaubt
+- `CSRF_TRUSTED_ORIGINS` und `FRONTEND_ORIGIN` auf den öffentlichen Namen
 - kein `BACKEND_PORT`, kein `POSTGRES_PORT`, kein `REDIS_PORT`, weil `compose.prod.yml` diese drei Dienste nicht veröffentlicht
 - `FRONTEND_PORT` ist der HTTPS-Port des Prod-Proxys
 - `PROD_TLS_MODE` ist `generate` oder `own`

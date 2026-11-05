@@ -43,7 +43,7 @@ class AuditEventSerializer(serializers.ModelSerializer):
         )
         read_only_fields = fields
 
-    def get_content_type(self, obj):
+    def get_content_type(self, obj: AuditEvent) -> str | None:
         if obj.content_type_id is None:
             return None
         return f"{obj.content_type.app_label}.{obj.content_type.model}"

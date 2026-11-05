@@ -38,11 +38,26 @@ if not SECRET_KEY:
     else:
         raise ImproperlyConfigured("SECRET_KEY fehlt, sobald DEBUG aus ist.")
 
-ALLOWED_HOSTS = [
-    host.strip()
-    for host in os.environ.get("ALLOWED_HOSTS", "localhost,127.0.0.1,backend").split(",")
-    if host.strip()
-]
+# Healthcheck und der Next-Proxy sprechen Django als 127.0.0.1, localhost oder
+# backend an. Diese Namen bleiben erlaubt, auch wenn ALLOWED_HOSTS nur den
+# öffentlichen Host nennt.
+_INTERNAL_HOSTS = ("localhost", "127.0.0.1", "backend")
+
+
+def allowed_hosts():
+    configured = [
+        host.strip() for host in os.environ.get("ALLOWED_HOSTS", "").split(",") if host.strip()
+    ]
+    if not configured:
+        return list(_INTERNAL_HOSTS)
+    hosts = []
+    for host in (*configured, *_INTERNAL_HOSTS):
+        if host not in hosts:
+            hosts.append(host)
+    return hosts
+
+
+ALLOWED_HOSTS = allowed_hosts()
 
 # Browser-Origin des Frontends, wenn die Sitzung über den Next-Proxy läuft.
 CSRF_TRUSTED_ORIGINS = [
