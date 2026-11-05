@@ -8,6 +8,9 @@ const forwardedRequestHeaders = [
   "content-type",
   "accept",
   "accept-language",
+  "origin",
+  "referer",
+  "x-forwarded-proto",
 ];
 
 type RouteContext = {

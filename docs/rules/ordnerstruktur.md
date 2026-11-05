@@ -16,7 +16,9 @@ jd_template/
   frontend/                Next.js
   docker/
     .env                   Host-Ports und Datenbankzugang
+    certs/                 selbstsigniertes Dev-Zertifikat, Schlüssel nicht im Git
     compose.yml
+    proxy/nginx.conf       TLS-Abschluss für den Dev-Stack
     backend/Dockerfile
     frontend/Dockerfile
   docs/

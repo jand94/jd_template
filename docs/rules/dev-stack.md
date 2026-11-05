@@ -4,10 +4,13 @@ Der lokale Stack ist Docker Compose. Host-Ports und der Datenbankzugang stehen i
 
 | Dienst | Image | Host-Port-Variable | Port im Compose-Netz |
 |---|---|---|---|
-| frontend | Next.js | `FRONTEND_PORT` | 3000 |
-| backend | Django | `BACKEND_PORT` | 8000 |
+| proxy | nginx | `FRONTEND_PORT` → 443, `BACKEND_PORT` → 8443 | TLS zum Browser |
+| frontend | Next.js | keiner | 3000, HTTP |
+| backend | Django | keiner | 8000, HTTP |
 | db | PostgreSQL 18 | `POSTGRES_PORT` | 5432 |
 | redis | Redis 8.10 | `REDIS_PORT` | 6379 |
+
+`make dev` erzeugt `docker/certs/dev.crt` und `docker/certs/dev.key`, wenn sie fehlen oder in weniger als 30 Tagen ablaufen. Der Dienst `proxy` beendet TLS mit diesem Zertifikat. Der Browser spricht `https://127.0.0.1:<FRONTEND_PORT>` und `https://127.0.0.1:<BACKEND_PORT>`. Zwischen den Containern bleibt HTTP. Nginx setzt `X-Forwarded-Proto: https` und schreibt Weiterleitungen von `http://` auf `https://` um. Session- und CSRF-Cookies tragen im Dev-Stack das Secure-Flag. `DEBUG` bleibt an, deshalb bleiben HSTS und die HTTPS-Umleitung von Django aus.
 
 Im Container spricht Django die Datenbank über `POSTGRES_HOST=db` und Redis über `REDIS_HOST=redis` an, jeweils auf dem internen Port. Die Variablen in `.env` sind die Ports auf dem Rechner. `REDIS_PASSWORD` gilt für Redis und den Django-Cache. `make redis-cli` nutzt dasselbe Passwort über `REDISCLI_AUTH`.
 
@@ -25,7 +28,7 @@ make restart backend
 make down
 ```
 
-`make restart dev` startet den ganzen Stack neu. `make restart backend`, `make restart frontend`, `make restart db` und `make restart redis` treffen einen Dienst. Dieselbe Form gilt für `start`, `stop` und `logs`.
+`make restart dev` startet den ganzen Stack neu. `make restart backend`, `make restart frontend`, `make restart proxy`, `make restart db` und `make restart redis` treffen einen Dienst. Dieselbe Form gilt für `start`, `stop` und `logs`.
 
 `make build` und `make build backend` bauen die Images von Backend und Frontend. `make rebuild` baut ohne Cache und startet danach. `make destroy` entfernt die Volumes, also auch die Datenbank.
 

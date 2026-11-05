@@ -21,7 +21,7 @@ ifeq ($(firstword $(MAKECMDGOALS)),$(filter $(firstword $(MAKECMDGOALS)),$(ARG_V
   ARGS := $(wordlist 2,$(words $(MAKECMDGOALS)),$(MAKECMDGOALS))
 endif
 
-.PHONY: help dev up down restart start stop build rebuild logs ps shell \
+.PHONY: help dev up down restart start stop build rebuild logs ps shell certs \
 	migrate makemigrations createsuperuser manage check check-deploy check-migrations \
 	test test-unit test-integration test-api test-frontend loadtest \
 	lint lint-python format-python format-frontend typecheck build-frontend audit \
@@ -33,18 +33,18 @@ PROD_COMPOSE := docker compose --env-file docker/.env.prod -f docker/compose.pro
 ##@ Hilfe
 
 help: ## Ziele und Aufrufe anzeigen
-	@awk 'BEGIN {FS = ":.*##"; printf "Verwendung: make <ziel> [dev|backend|frontend|db|redis]\n"} \
+	@awk 'BEGIN {FS = ":.*##"; printf "Verwendung: make <ziel> [dev|backend|frontend|db|redis|proxy]\n"} \
 		/^##@/ {printf "\n%s\n", substr($$0, 5)} \
 		/^[a-zA-Z0-9_-]+:.*?## / {printf "  %-22s %s\n", $$1, $$2}' $(MAKEFILE_LIST)
 
 urls: ## Lokale URLs aus docker/.env anzeigen
 	@set -a && . docker/.env && set +a && \
-	printf 'Frontend   http://127.0.0.1:%s\n' "$$FRONTEND_PORT" && \
-	printf 'API        http://127.0.0.1:%s/api/v1/\n' "$$BACKEND_PORT" && \
-	printf 'Health     http://127.0.0.1:%s/api/v1/health/\n' "$$BACKEND_PORT" && \
-	printf 'Swagger    http://127.0.0.1:%s/api/docs/\n' "$$BACKEND_PORT" && \
-	printf 'Schema     http://127.0.0.1:%s/api/schema/\n' "$$BACKEND_PORT" && \
-	printf 'Admin      http://127.0.0.1:%s/admin/\n' "$$BACKEND_PORT" && \
+	printf 'Frontend   https://127.0.0.1:%s\n' "$$FRONTEND_PORT" && \
+	printf 'API        https://127.0.0.1:%s/api/v1/\n' "$$BACKEND_PORT" && \
+	printf 'Health     https://127.0.0.1:%s/api/v1/health/\n' "$$BACKEND_PORT" && \
+	printf 'Swagger    https://127.0.0.1:%s/api/docs/\n' "$$BACKEND_PORT" && \
+	printf 'Schema     https://127.0.0.1:%s/api/schema/\n' "$$BACKEND_PORT" && \
+	printf 'Admin      https://127.0.0.1:%s/admin/\n' "$$BACKEND_PORT" && \
 	printf 'Postgres   127.0.0.1:%s\n' "$$POSTGRES_PORT" && \
 	printf 'Redis      127.0.0.1:%s\n' "$$REDIS_PORT"
 
@@ -52,11 +52,16 @@ urls: ## Lokale URLs aus docker/.env anzeigen
 
 ifneq ($(filter dev,$(ARGS)),dev)
 dev: ## Dev-Stack starten
+	$(MAKE) certs
 	$(COMPOSE) up -d
 endif
 
 up: ## Wie dev: Stack im Hintergrund starten
+	$(MAKE) certs
 	$(COMPOSE) up -d
+
+certs: ## Selbstsigniertes Dev-Zertifikat erzeugen, falls es fehlt oder in 30 Tagen abläuft
+	./scripts/generate_dev_cert.sh
 
 down: ## Stack stoppen, Container entfernen, Volumes behalten
 	$(COMPOSE) down
@@ -103,6 +108,7 @@ build: ## Images bauen. make build | make build backend | make build frontend
 
 rebuild: ## Images ohne Cache bauen und Stack starten
 	$(COMPOSE) build --no-cache
+	$(MAKE) certs
 	$(COMPOSE) up -d
 
 ##@ Shell
@@ -111,8 +117,8 @@ shell: ## Shell öffnen. make shell | make shell db
 	@svc="$(ARGS)"; \
 	if [ -z "$$svc" ] || [ "$$svc" = "dev" ]; then svc=backend; fi; \
 	case $$svc in \
-	  backend|frontend|db|redis) ;; \
-	  *) echo "Unbekannter Dienst: $$svc"; echo "Erlaubt: backend, frontend, db, redis"; exit 1 ;; \
+	  backend|frontend|db|redis|proxy) ;; \
+	  *) echo "Unbekannter Dienst: $$svc"; echo "Erlaubt: backend, frontend, db, redis, proxy"; exit 1 ;; \
 	esac; \
 	$(COMPOSE) exec $$svc sh
 
@@ -182,9 +188,9 @@ test-api: ## Nur API-Tests
 
 loadtest: ## Locust, Standard 100 Benutzer für 30s. LOCUST_USERS=10 make loadtest
 	@set -a && . docker/.env && set +a && \
-	backend/.venv/bin/locust -f backend/locustfile.py --headless \
+	REQUESTS_CA_BUNDLE=docker/certs/dev.crt backend/.venv/bin/locust -f backend/locustfile.py --headless \
 	-u $(LOCUST_USERS) -r $(LOCUST_SPAWN_RATE) -t $(LOCUST_RUN_TIME) \
-	--host http://127.0.0.1:$$BACKEND_PORT
+	--host https://127.0.0.1:$$BACKEND_PORT
 
 ##@ Qualität
 
@@ -245,8 +251,8 @@ define compose_services
 if [ -z "$$svc" ] || [ "$$svc" = "dev" ] || [ "$$svc" = "all" ]; then svc=""; fi; \
 for name in $$svc; do \
   case $$name in \
-    backend|frontend|db|redis) ;; \
-    *) echo "Unbekannter Dienst: $$name"; echo "Erlaubt: backend, frontend, db, redis, dev"; exit 1 ;; \
+    backend|frontend|db|redis|proxy) ;; \
+    *) echo "Unbekannter Dienst: $$name"; echo "Erlaubt: backend, frontend, db, redis, proxy, dev"; exit 1 ;; \
   esac; \
 done; \
 $(COMPOSE) $(1) $$svc

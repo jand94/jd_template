@@ -1,5 +1,7 @@
 docker/.env
 docker/.env.prod
+docker/certs/*.crt
+docker/certs/*.key
 .DS_Store
 .hypothesis/
 .ruff_cache/

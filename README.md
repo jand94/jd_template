@@ -42,7 +42,7 @@ Die lokale Datei ist `docker/.env`. Die Vorlage [docker/.env.example](docker/.en
 | `DEFAULT_FROM_EMAIL` | Absender für ausgehende Mail |
 | `DJANGO_SUPERUSER_USERNAME`, `DJANGO_SUPERUSER_EMAIL`, `DJANGO_SUPERUSER_PASSWORD` | Erster Admin, nur wenn der Benutzer noch fehlt |
 
-Im Compose-Netz bleiben die Ports fest: Backend `8000`, Frontend `3000`, PostgreSQL `5432`, Redis `6379`. Die Variablen oben sind nur die Ports auf dem Host. Django erreicht die Datenbank über den Dienstnamen `db` und Redis über `redis`.
+Im Compose-Netz bleiben die Ports fest: Backend `8000`, Frontend `3000`, PostgreSQL `5432`, Redis `6379`, jeweils HTTP. Die Variablen oben sind die Ports auf dem Host. Frontend und Backend sind dort HTTPS. Nginx im Dienst `proxy` beendet TLS mit dem Zertifikat aus `make dev`. Django erreicht die Datenbank über den Dienstnamen `db` und Redis über `redis`.
 
 Sind `8000`, `3000`, `5432` oder `6379` belegt, die Host-Ports in `docker/.env` ändern und `make dev` erneut ausführen. Branding liest das Frontend aus `frontend/src/config/brand.ts`. Compose übergibt die vier Namensvariablen an den Frontend-Container. Nach einer Änderung dort den Stack neu starten, damit der Container die Werte neu liest. Ports, Volumes und Dienste stehen in [docs/rules/dev-stack.md](docs/rules/dev-stack.md).
 
@@ -62,21 +62,21 @@ Der erste Lauf baut die Images, installiert Python- und npm-Abhängigkeiten und 
 make urls
 ```
 
-Mit den Ports aus der Vorlage:
+Mit den Ports aus der Vorlage. Das Zertifikat ist selbstsigniert. `curl` prüft es mit `--cacert docker/certs/dev.crt`. Der Browser warnt, bis dasselbe Zertifikat als vertrauenswürdig importiert ist. Die Schritte stehen in [docs/tutorials/01-ubuntu-vm.md](docs/tutorials/01-ubuntu-vm.md).
 
 | Oberfläche | Adresse |
 |---|---|
-| Frontend | `http://127.0.0.1:3000` |
-| Health | `http://127.0.0.1:8000/api/v1/health/` liefert `{"status":"ok"}` |
-| Ready | `http://127.0.0.1:8000/api/v1/ready/` prüft Datenbank und Redis |
-| API | `http://127.0.0.1:8000/api/v1/` |
-| Swagger | `http://127.0.0.1:8000/api/docs/` |
-| OpenAPI-Schema | `http://127.0.0.1:8000/api/schema/` |
-| Django-Admin | `http://127.0.0.1:8000/admin/` |
+| Frontend | `https://127.0.0.1:3000` |
+| Health | `https://127.0.0.1:8000/api/v1/health/` liefert `{"status":"ok"}` |
+| Ready | `https://127.0.0.1:8000/api/v1/ready/` prüft Datenbank und Redis |
+| API | `https://127.0.0.1:8000/api/v1/` |
+| Swagger | `https://127.0.0.1:8000/api/docs/` |
+| OpenAPI-Schema | `https://127.0.0.1:8000/api/schema/` |
+| Django-Admin | `https://127.0.0.1:8000/admin/` |
 
 Ohne Sitzung leitet das Frontend auf `/anmelden`. Erreichbar ohne Anmeldung sind `/anmelden`, `/registrieren`, `/passwort-vergessen`, `/passwort-setzen` und `/email-bestaetigen`. Nach der Anmeldung öffnet `/dashboard`. `/` mit Sitzung leitet dorthin weiter. Profil und System liegen unter `/profil` und `/system`.
 
-Der Superuser aus `docker/.env` gilt für das Django-Admin und für die Anmeldung im Frontend. Beide Oberflächen teilen sich die Session-Cookies, weil Cookies nicht an den Port gebunden sind.
+Der Superuser aus `docker/.env` gilt für das Django-Admin und für die Anmeldung im Frontend. Beide Oberflächen teilen sich die Session-Cookies, weil Cookies nicht an den Port gebunden sind. Dafür müssen beide Adressen `https://127.0.0.1` sein. Die Cookies tragen das Secure-Flag.
 
 Stack beenden:
 

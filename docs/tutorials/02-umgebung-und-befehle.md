@@ -26,9 +26,11 @@ POSTGRES_HOST: db
 POSTGRES_PORT: "5432"
 REDIS_HOST: redis
 REDIS_PORT: "6379"
-FRONTEND_ORIGIN: http://127.0.0.1:${FRONTEND_PORT}
+FRONTEND_ORIGIN: https://127.0.0.1:${FRONTEND_PORT}
 ALLOWED_HOSTS: localhost,127.0.0.1,backend
-CSRF_TRUSTED_ORIGINS: http://127.0.0.1:${FRONTEND_PORT},http://localhost:${FRONTEND_PORT}
+CSRF_TRUSTED_ORIGINS: https://127.0.0.1:${FRONTEND_PORT},https://localhost:${FRONTEND_PORT},https://127.0.0.1:${BACKEND_PORT},https://localhost:${BACKEND_PORT}
+SESSION_COOKIE_SECURE: "true"
+CSRF_COOKIE_SECURE: "true"
 ```
 
 Dieselben Host- und Port-Zeilen stehen in `docker/compose.prod.yml`. `FRONTEND_ORIGIN` kommt in der Produktion aus `docker/.env.prod`, weil der Prod-Block `${FRONTEND_ORIGIN}` einsetzt. `ALLOWED_HOSTS` und `CSRF_TRUSTED_ORIGINS` setzt der Prod-Block nicht. Dort gelten die Zeilen aus `docker/.env.prod`.
@@ -62,8 +64,8 @@ Vorlage: `docker/.env.example`.
 
 | Variable | Vorlage | Bedeutung |
 |---|---|---|
-| `BACKEND_PORT` | `8000` | Host-Port für Django. Swagger, Admin, Health und Ready |
-| `FRONTEND_PORT` | `3000` | Host-Port für Next.js |
+| `BACKEND_PORT` | `8000` | Host-Port für Django, HTTPS über den Proxy. Swagger, Admin, Health und Ready |
+| `FRONTEND_PORT` | `3000` | Host-Port für Next.js, HTTPS über den Proxy |
 | `POSTGRES_PORT` | `5432` | Host-Port für PostgreSQL. Im Backend-Container immer `5432` |
 | `REDIS_PORT` | `6379` | Host-Port für Redis. Im Backend-Container immer `6379` |
 
@@ -130,15 +132,16 @@ Diese Namen können in `docker/.env` stehen und werden im Backend trotzdem vom C
 | `POSTGRES_PORT` | `5432` | `5432` |
 | `REDIS_HOST` | `redis` | `redis` |
 | `REDIS_PORT` | `6379` | `6379` |
-| `FRONTEND_ORIGIN` | `http://127.0.0.1:<FRONTEND_PORT>` | Wert aus `docker/.env.prod` |
+| `FRONTEND_ORIGIN` | `https://127.0.0.1:<FRONTEND_PORT>` | Wert aus `docker/.env.prod` |
 | `ALLOWED_HOSTS` | `localhost,127.0.0.1,backend` | Wert aus `docker/.env.prod` |
-| `CSRF_TRUSTED_ORIGINS` | `http://127.0.0.1:<FRONTEND_PORT>` und `http://localhost:<FRONTEND_PORT>` | Wert aus `docker/.env.prod` |
+| `CSRF_TRUSTED_ORIGINS` | `https` für Frontend- und Backend-Port, jeweils `127.0.0.1` und `localhost` | Wert aus `docker/.env.prod` |
+| `SESSION_COOKIE_SECURE`, `CSRF_COOKIE_SECURE` | `true` | Default aus `DEBUG`: an, sobald `DEBUG` aus ist |
 | `API_ORIGIN` | `http://backend:8000`, nur im Frontend | derselbe Wert |
 | `DEBUG` | aus `docker/.env` | der Prod-Block setzt `false` |
 
 `API_ORIGIN` ist die Adresse, unter der Next.js Django im Compose-Netz ruft. Der Browser verwendet sie nicht. Der Browser ruft denselben Ursprung wie die Seite, und die Route-Handler unter `frontend/src/app/accounts` und `frontend/src/app/media` leiten an `API_ORIGIN` weiter.
 
-`FRONTEND_ORIGIN` baut Links in Mails: `{FRONTEND_ORIGIN}/email-bestaetigen` und `{FRONTEND_ORIGIN}/passwort-setzen`. In der Entwicklung zeigt der Wert auf die VM selbst. Wer das Frontend über einen SSH-Tunnel auf dem Laptop öffnet, bleibt bei `http://127.0.0.1:3000`, weil der Tunnel genau dort endet.
+`FRONTEND_ORIGIN` baut Links in Mails: `{FRONTEND_ORIGIN}/email-bestaetigen` und `{FRONTEND_ORIGIN}/passwort-setzen`. In der Entwicklung zeigt der Wert auf `https://127.0.0.1` und den Frontend-Port. Wer das Frontend über einen SSH-Tunnel auf dem Laptop öffnet, bleibt bei dieser Adresse, weil der Tunnel genau dort endet. Das Zertifikat und der Import stehen in [Kapitel 1](01-ubuntu-vm.md).
 
 Weitere Namen aus `settings.py`, ohne Zeile in der Vorlage:
 
@@ -443,7 +446,7 @@ Lauf ändern:
 LOCUST_USERS=10 LOCUST_SPAWN_RATE=2 LOCUST_RUN_TIME=15s make loadtest
 ```
 
-Das Ziel liest `BACKEND_PORT` aus `docker/.env` und prüft `http://127.0.0.1`. Ein Backend, das nur im Compose-Netz erreichbar ist, braucht den veröffentlichten Host-Port.
+Das Ziel liest `BACKEND_PORT` aus `docker/.env` und prüft `https://127.0.0.1`. `REQUESTS_CA_BUNDLE` zeigt auf `docker/certs/dev.crt`, damit Locust das selbstsignierte Zertifikat akzeptiert. Ein Backend, das nur im Compose-Netz erreichbar ist, braucht den veröffentlichten Host-Port.
 
 Schichten, Marker und die Ablage der Testdateien stehen in [docs/rules/testing.md](../rules/testing.md).
 

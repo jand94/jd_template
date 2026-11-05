@@ -286,7 +286,7 @@ Die Datei übernimmt den Accounts-Proxy und ersetzt die Zielbasis:
 const target = new URL(`/billing/${path.join("/")}/`, apiOrigin);
 ```
 
-`apiOrigin` bleibt `process.env.API_ORIGIN ?? "http://backend:8000"`. Header, Cookies und der Umgang mit Status 204 bleiben wie bei Accounts. In der Produktion gehört `x-forwarded-proto` in `forwardedRequestHeaders`, aus dem Grund in [Kapitel 1](01-ubuntu-vm.md).
+`apiOrigin` bleibt `process.env.API_ORIGIN ?? "http://backend:8000"`. Header, Cookies und der Umgang mit Status 204 bleiben wie bei Accounts. Die Liste `forwardedRequestHeaders` enthält `origin`, `referer` und `x-forwarded-proto`. Der Dev-Proxy und der Nginx der Produktion setzen `X-Forwarded-Proto: https`. Ohne diese drei Namen sieht Django die Browser-Adresse nicht und lehnt die Sitzung ab, sobald die Anfrage als HTTPS gilt.
 
 Ohne diese Datei antwortet Next.js auf den API-Aufruf mit 404, während `curl` gegen den Backend-Port dieselbe Route findet. Swagger unter `/api/docs/` spricht Django direkt und umgeht den Proxy ebenfalls.
 

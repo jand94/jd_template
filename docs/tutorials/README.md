@@ -4,7 +4,7 @@ Die drei Kapitel bauen aufeinander auf. Jedes setzt das vorige Ergebnis voraus u
 
 | Kapitel | Ergebnis |
 |---|---|
-| [01 Ubuntu-VM, Docker, UFW, Start](01-ubuntu-vm.md) | Eine Ubuntu-VM startet den Stack mit `make dev` und gibt nur die gewünschten Ports frei |
+| [01 Ubuntu-VM, Docker, UFW, Start](01-ubuntu-vm.md) | Eine Ubuntu-VM startet den Stack mit `make dev`. Frontend und Backend sind auf dem Host HTTPS mit selbstsigniertem Zertifikat |
 | [02 Umgebung, Datenbanken, Make](02-umgebung-und-befehle.md) | `docker/.env` ist erklärt, eine weitere Datenbank ist anschließbar, jedes Make-Ziel hat einen Aufruf |
 | [03 Eigene Implementierung](03-eigene-implementierung.md) | Eine Fach-App und das passende Frontend-Modul laufen über denselben Browser-Ursprung |
 

@@ -11,9 +11,15 @@ async function proxy(request: NextRequest, context: RouteContext) {
   const target = new URL(`/media/${path.map(encodeURIComponent).join("/")}`, apiOrigin);
   target.search = request.nextUrl.search;
 
+  const requestHeaders = new Headers({ accept: request.headers.get("accept") ?? "image/*" });
+  const forwardedProto = request.headers.get("x-forwarded-proto");
+  if (forwardedProto) {
+    requestHeaders.set("x-forwarded-proto", forwardedProto);
+  }
+
   const upstream = await fetch(target, {
     method: request.method,
-    headers: { accept: request.headers.get("accept") ?? "image/*" },
+    headers: requestHeaders,
     redirect: "manual",
     cache: "no-store",
   });

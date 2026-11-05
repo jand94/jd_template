@@ -12,12 +12,13 @@ Node, PostgreSQL, Redis, pytest, Ruff und der Next.js-Build laufen in Containern
 
 | Dienst | Image | Port im Compose-Netz | Variable für den Host-Port |
 |---|---|---|---|
-| frontend | Next.js | 3000 | `FRONTEND_PORT` |
-| backend | Django | 8000 | `BACKEND_PORT` |
+| proxy | nginx, TLS | 443 und 8443 | `FRONTEND_PORT`, `BACKEND_PORT` |
+| frontend | Next.js | 3000, HTTP | keiner |
+| backend | Django | 8000, HTTP | keiner |
 | db | PostgreSQL 18 | 5432 | `POSTGRES_PORT` |
 | redis | Redis 8.10 | 6379 | `REDIS_PORT` |
 
-Der Host-Port ist die Tür auf der VM. Im Container bleiben die Ports fest. Django spricht die Datenbank über den Dienstnamen `db` auf Port 5432 an, Redis über `redis` auf Port 6379. Die Werte in `docker/.env` ändern die Tür auf der VM, den internen Port ändern sie nicht. Einzelheiten stehen in [Kapitel 2](02-umgebung-und-befehle.md).
+Der Host-Port ist die Tür auf der VM. Frontend und Backend sind dort HTTPS. Das Zertifikat ist selbstsigniert und gilt für `localhost` und `127.0.0.1`. Im Container bleiben Frontend und Backend bei HTTP. Django spricht die Datenbank über den Dienstnamen `db` auf Port 5432 an, Redis über `redis` auf Port 6379. Die Werte in `docker/.env` ändern die Tür auf der VM, den internen Port ändern sie nicht. Einzelheiten stehen in [Kapitel 2](02-umgebung-und-befehle.md).
 
 ## Größe der VM
 
@@ -46,7 +47,7 @@ Die Zeitzone betrifft die VM. Django speichert Zeitpunkte in UTC (`TIME_ZONE = "
 Pakete, die der Host selbst braucht:
 
 ```bash
-sudo apt install -y ca-certificates curl git make python3 ufw
+sudo apt install -y ca-certificates curl git make openssl python3 ufw
 git --version
 make --version
 python3 --version
@@ -157,22 +158,23 @@ Zwei Folgen:
 - Ein Port, den Compose an `0.0.0.0` bindet, ist aus dem Netz erreichbar, auch wenn UFW ihn nicht erlaubt.
 - Ein Port, den Compose an `127.0.0.1` bindet, nimmt nur Verbindungen von der VM selbst an. UFW muss ihn dafür nicht öffnen. Ein SSH-Tunnel erreicht ihn, das öffentliche Netz nicht.
 
-Profil Entwicklung über SSH-Tunnel. In `docker/compose.yml` die vier `ports`-Einträge auf das Loopback legen:
+Profil Entwicklung über SSH-Tunnel. In `docker/compose.yml` die Veröffentlichungen auf das Loopback legen. Der Proxy lauscht im Container auf `443` und `8443`, PostgreSQL auf `5432`, Redis auf `6379`:
 
 ```yaml
 ports:
-  - "127.0.0.1:${POSTGRES_PORT}:5432"
+  - "127.0.0.1:${FRONTEND_PORT}:443"
+  - "127.0.0.1:${BACKEND_PORT}:8443"
 ```
 
-Dieselbe Form für Redis (`6379`), Backend (`8000`) und Frontend (`3000`). Vom eigenen Rechner:
+Dieselbe Form für PostgreSQL (`5432`) und Redis (`6379`). Vom eigenen Rechner:
 
 ```bash
 ssh -L 3000:127.0.0.1:3000 -L 8000:127.0.0.1:8000 user@vm
 ```
 
-Danach ist das Frontend unter `http://127.0.0.1:3000` auf dem eigenen Rechner erreichbar. Die Cookies bleiben an diesen Rechner gebunden.
+Danach ist das Frontend unter `https://127.0.0.1:3000` auf dem eigenen Rechner erreichbar. Die Cookies bleiben an diesen Rechner gebunden. Der Tunnel überträgt das Zertifikat der VM. Der Browser braucht dasselbe Vertrauen wie auf der VM selbst.
 
-Profil Entwicklung im eigenen Netz. Frontend und Backend bleiben an `0.0.0.0`, PostgreSQL und Redis an `127.0.0.1`. Zusätzlich filtert die Kette `DOCKER-USER`, weil UFW die an `0.0.0.0` gebundenen Ports nicht sieht. `--dport` ist hier der Port im Container, nach der Umleitung durch Docker, also `3000` und `8000`, auch wenn `FRONTEND_PORT` auf der VM anders lautet.
+Profil Entwicklung im eigenen Netz. Frontend und Backend bleiben an `0.0.0.0`, PostgreSQL und Redis an `127.0.0.1`. Zusätzlich filtert die Kette `DOCKER-USER`, weil UFW die an `0.0.0.0` gebundenen Ports nicht sieht. `--dport` ist hier der Port im Container, nach der Umleitung durch Docker, also `443` und `8443`, auch wenn `FRONTEND_PORT` auf der VM anders lautet.
 
 Schnittstelle der VM ermitteln:
 
@@ -191,8 +193,8 @@ IFACE=eth0
 NET=10.20.0.0/24
 iptables -F DOCKER-USER
 iptables -A DOCKER-USER -m conntrack --ctstate RELATED,ESTABLISHED -j RETURN
-iptables -A DOCKER-USER -i "$IFACE" -p tcp --dport 3000 -s "$NET" -j RETURN
-iptables -A DOCKER-USER -i "$IFACE" -p tcp --dport 8000 -s "$NET" -j RETURN
+iptables -A DOCKER-USER -i "$IFACE" -p tcp --dport 443 -s "$NET" -j RETURN
+iptables -A DOCKER-USER -i "$IFACE" -p tcp --dport 8443 -s "$NET" -j RETURN
 iptables -A DOCKER-USER -i "$IFACE" -j DROP
 iptables -A DOCKER-USER -j RETURN
 EOF
@@ -252,11 +254,13 @@ Kollidiert ein Port, nur die passende Variable in `docker/.env` ändern. Ein bel
 docker compose --env-file docker/.env -f docker/compose.yml up -d
 ```
 
-Compose liest `docker/.env`, ersetzt die Variablen in `docker/compose.yml` und startet die vier Dienste im Projekt `jd_template`.
+Vorher schreibt `make dev` das selbstsignierte Zertifikat nach `docker/certs/`, falls es fehlt oder in weniger als 30 Tagen abläuft. Compose liest `docker/.env`, ersetzt die Variablen in `docker/compose.yml` und startet die fünf Dienste im Projekt `jd_template`.
 
 ```mermaid
 sequenceDiagram
   participant Make
+  participant Browser
+  participant Proxy as nginx
   participant DB as PostgreSQL
   participant Redis
   participant Backend as Django
@@ -272,6 +276,10 @@ sequenceDiagram
   Make->>Frontend: parallel zum Backend-Start
   Frontend->>Frontend: npm ci, falls next fehlt
   Frontend->>Frontend: next dev auf 0.0.0.0:3000
+  Make->>Proxy: TLS auf 443 und 8443
+  Browser->>Proxy: https://127.0.0.1
+  Proxy->>Frontend: HTTP, X-Forwarded-Proto https
+  Proxy->>Backend: HTTP, X-Forwarded-Proto https
 ```
 
 1. PostgreSQL initialisiert das Volume `postgres_data` unter `/var/lib/postgresql`, wenn es leer ist. Benutzer, Datenbankname und Passwort aus `POSTGRES_USER`, `POSTGRES_DB` und `POSTGRES_PASSWORD` gelten bei dieser ersten Initialisierung. Ein späteres Ändern des Passworts in `docker/.env` ändert die bestehende Datenbank nicht. Der Healthcheck ruft `pg_isready` mit demselben Benutzer und Datenbanknamen.
@@ -281,6 +289,7 @@ sequenceDiagram
 5. Der Backend-Healthcheck fragt `http://127.0.0.1:8000/api/v1/ready/` ab und sendet `X-Forwarded-Proto: https`. `ready` prüft PostgreSQL und Redis. Der Header verhindert, dass eine HTTPS-Umleitung den Check auf eine andere Adresse schickt. `start_period` ist 40 Sekunden, weil die erste Migration länger dauert als ein späterer Start.
 6. Das Frontend wartet nur darauf, dass der Backend-Container gestartet ist, nicht darauf, dass er gesund ist. Der Einstieg `/usr/local/bin/dev-entrypoint.sh` führt `npm ci` aus, wenn `node_modules/.bin/next` im Volume fehlt, und startet danach `next dev` auf `0.0.0.0:3000`. Das erste Mal dauert das Minuten. `node_modules` und `.next` liegen in eigenen Volumes, damit ein Bind-Mount des Quelltexts sie nicht mit dem Host überschreibt.
 7. Der Quelltext von Backend und Frontend ist in die Container gemountet. Eine gespeicherte Datei lädt Django und Next.js neu. Neue Python-Pakete brauchen `make install-backend` und einen Neustart des Backends. Neue npm-Pakete brauchen `make install-frontend`.
+8. Der Dienst `proxy` lädt `docker/certs/dev.crt` und `docker/certs/dev.key`. Auf dem Host bindet er `FRONTEND_PORT` an Port `443` im Container und `BACKEND_PORT` an Port `8443`. Beides ist TLS. Nginx setzt `X-Forwarded-Proto: https`, reicht WebSockets für das Hot-Reload von Next.js durch und schreibt eine Weiterleitung von `http://` auf `https://` um. Frontend und Backend veröffentlichen selbst keinen Host-Port.
 
 Images für Backend und Frontend baut Compose beim ersten `up`, weil sie lokal noch fehlen. PostgreSQL und Redis kommen von Docker Hub (`make pull` holt diese beiden Basis-Images vorab).
 
@@ -302,21 +311,44 @@ Mit den Ports aus der Vorlage, solange `docker/.env` sie nicht geändert hat:
 
 | Oberfläche | Adresse auf der VM |
 |---|---|
-| Frontend | `http://127.0.0.1:3000` |
-| Health | `http://127.0.0.1:8000/api/v1/health/` |
-| Ready | `http://127.0.0.1:8000/api/v1/ready/` |
-| Swagger | `http://127.0.0.1:8000/api/docs/` |
-| OpenAPI | `http://127.0.0.1:8000/api/schema/` |
-| Admin | `http://127.0.0.1:8000/admin/` |
+| Frontend | `https://127.0.0.1:3000` |
+| Health | `https://127.0.0.1:8000/api/v1/health/` |
+| Ready | `https://127.0.0.1:8000/api/v1/ready/` |
+| Swagger | `https://127.0.0.1:8000/api/docs/` |
+| OpenAPI | `https://127.0.0.1:8000/api/schema/` |
+| Admin | `https://127.0.0.1:8000/admin/` |
 
 ```bash
-curl -fsS http://127.0.0.1:8000/api/v1/health/
-curl -fsS -H 'X-Forwarded-Proto: https' http://127.0.0.1:8000/api/v1/ready/
+curl -fsS --cacert docker/certs/dev.crt https://127.0.0.1:8000/api/v1/health/
+curl -fsS --cacert docker/certs/dev.crt https://127.0.0.1:8000/api/v1/ready/
 ```
 
 Health antwortet `{"status":"ok"}` und prüft keine Abhängigkeit. Ready antwortet mit `ok`, sobald Datenbank und Redis erreichbar sind, und mit HTTP 503, wenn eine der beiden Prüfungen fehlschlägt. Der Körper nennt dann `error` und keine Verbindungsdaten.
 
-Anmeldung im Frontend und im Django-Admin nutzen denselben Superuser aus `DJANGO_SUPERUSER_*`. Die Sitzung ist ein Cookie. Cookies hängen am Hostnamen, nicht am Port. Wer Frontend und Admin über `127.0.0.1` öffnet, teilt die Sitzung zwischen Port 3000 und Port 8000.
+Anmeldung im Frontend und im Django-Admin nutzen denselben Superuser aus `DJANGO_SUPERUSER_*`. Die Sitzung ist ein Cookie mit Secure-Flag. Cookies hängen am Hostnamen und am Schema, nicht am Port. Wer Frontend und Admin beide über `https://127.0.0.1` öffnet, teilt die Sitzung zwischen den beiden Ports. `http://` und `https://` teilen sie nicht.
+
+## Zertifikat vertrauen
+
+`docker/certs/dev.crt` ist selbstsigniert. Der Browser zeigt eine Warnung, bis das Zertifikat im Vertrauensspeicher liegt. `curl` umgeht das mit `--cacert docker/certs/dev.crt`.
+
+Auf der Ubuntu-VM, für Programme, die den Systemspeicher lesen:
+
+```bash
+sudo cp docker/certs/dev.crt /usr/local/share/ca-certificates/jd-template-dev.crt
+sudo update-ca-certificates
+```
+
+Chrome und Firefox bringen einen eigenen Speicher mit. Dort das Zertifikat als Zertifizierungsstelle importieren: in Chrome unter Einstellungen, Datenschutz und Sicherheit, Sicherheit, Zertifikate verwalten. Danach die Seite neu laden. Ein bereits geöffnetes Warnfenster merkt sich die Ablehnung für diese Sitzung.
+
+Das Zertifikat gilt 825 Tage für `DNS:localhost` und `IP:127.0.0.1`. `make dev` erneuert es, wenn weniger als 30 Tage bleiben. Ein neues Zertifikat braucht denselben Import erneut. Vorher die alten Dateien entfernen, wenn sofort ein neues entstehen soll:
+
+```bash
+rm -f docker/certs/dev.crt docker/certs/dev.key
+make certs
+make restart proxy
+```
+
+`DEBUG` bleibt in der Entwicklung an. Django setzt deshalb kein HSTS. Ein selbstsigniertes Zertifikat schreibt sich nicht für ein Jahr in den Browser. Die HTTPS-Umleitung von Django bleibt aus, weil die Container intern HTTP sprechen. Der Proxy ist die einzige TLS-Stelle. Die Produktion in `docker/compose.prod.yml` nutzt dieses Zertifikat nicht. Dort beendet der Nginx der VM das öffentliche Zertifikat.
 
 Ohne Sitzung leitet das Frontend auf `/anmelden`. Offen sind `/anmelden`, `/registrieren`, `/passwort-vergessen`, `/passwort-setzen` und `/email-bestaetigen`. Nach der Anmeldung öffnet `/dashboard`.
 
@@ -403,26 +435,9 @@ make prod
 
 ### Header bis zu Django durchreichen
 
-Nginx setzt `X-Forwarded-Proto` auf der Verbindung zum Frontend. Django sieht diese Verbindung nicht. Next.js ruft Django unter `http://backend:8000` auf. Der Proxy in `frontend/src/app/accounts/[...path]/route.ts` reicht `cookie`, `x-csrftoken`, `content-type`, `accept` und `accept-language` weiter und lässt `x-forwarded-proto` aus.
+Nginx auf der VM setzt `X-Forwarded-Proto` auf der Verbindung zum Frontend. Next.js ruft Django unter `http://backend:8000` auf. Der Route-Handler `frontend/src/app/accounts/[...path]/route.ts` reicht `origin`, `referer` und `x-forwarded-proto` zusammen mit Cookie und CSRF-Token weiter. `frontend/src/app/media/[...path]/route.ts` reicht `x-forwarded-proto` ebenfalls weiter. Ein neuer Proxy aus [Kapitel 3](03-eigene-implementierung.md) behält diese Header.
 
-Solange der Header bei Django fehlt und `DEBUG` aus ist, antwortet Django auf unsichere Methoden mit einer Weiterleitung auf HTTPS. Der Healthcheck setzt den Header selbst und bleibt davon unberührt. Anmeldung, Registrierung und die übrigen Account-Aufrufe über das Frontend brauchen den Header auf dem Weg zu Django.
-
-In `forwardedRequestHeaders` den Namen ergänzen:
-
-```ts
-const forwardedRequestHeaders = [
-  "cookie",
-  "x-csrftoken",
-  "content-type",
-  "accept",
-  "accept-language",
-  "x-forwarded-proto",
-];
-```
-
-Dieselbe Ergänzung gehört in jeden weiteren Proxy, den [Kapitel 3](03-eigene-implementierung.md) für eine neue App anlegt. Medien unter `/media` liest Django ohne diesen Header, weil `GET` von der Umleitung auf die HTTPS-Adresse geschickt würde. Für Avatare `x-forwarded-proto` auch in `frontend/src/app/media/[...path]/route.ts` an den Upstream setzen.
-
-Nach der Änderung das Produktions-Image neu bauen: `make prod`.
+Fehlt der Header bei Django und ist `DEBUG` aus, antwortet Django auf unsichere Methoden mit einer Weiterleitung auf HTTPS. Der Healthcheck setzt den Header selbst. Die öffentliche Nginx-Site muss ihn setzen, sonst kommt bei Next.js nichts an, das der Route-Handler weitergeben kann.
 
 Bereitschaft aus dem Compose-Netz, ohne den Backend-Port zu veröffentlichen:
 
@@ -467,7 +482,9 @@ make restart dev
 | Backend-Log: `SECRET_KEY fehlt` | `DEBUG` ist aus und `SECRET_KEY` ist leer. Im Dev-`.env` bleibt `DEBUG=true`, oder der Schlüssel wird gesetzt |
 | Frontend-Log bleibt bei `npm ci` | Erster Lauf. `make logs frontend` weiter beobachten. Abbruch mit vollem Log: Platte prüfen (`df -h`) |
 | `ready` liefert 503 | `make logs db` und `make logs redis`. Danach `make logs backend` |
-| Seite lädt, Anmeldung leitet im Kreis | `CSRF_TRUSTED_ORIGINS` enthält die genaue Browser-Adresse inklusive Schema und Port. In der Produktion zusätzlich `x-forwarded-proto` im Next-Proxy |
+| Seite lädt, Anmeldung leitet im Kreis | `CSRF_TRUSTED_ORIGINS` enthält die genaue Browser-Adresse inklusive `https` und Port. Der Proxy muss laufen, sonst ist der Host-Port zu |
+| `ERR_CERT_AUTHORITY_INVALID` | Selbstsigniertes Zertifikat. `docker/certs/dev.crt` importieren oder `curl` mit `--cacert` aufrufen |
+| Nginx startet nicht, Log sagt das Zertifikat fehlt | `make certs` und `make restart proxy` |
 | UFW ist an, SSH bricht ab | Nur von der Konsole der VM: `sudo ufw allow OpenSSH` und `sudo ufw enable`. Die Docker-Ports bleiben davon unberührt |
 | Port ist in UFW zu und trotzdem offen | Compose bindet ihn an `0.0.0.0`. Auf `127.0.0.1` umstellen oder `DOCKER-USER` filtern |
 
