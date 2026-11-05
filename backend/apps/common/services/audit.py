@@ -282,13 +282,31 @@ def _after_save(sender, instance, created, raw=False, **kwargs):
     if created:
         changes = _changes_from_empty(after)
         action = AuditAction.CREATE
+        extra = None
     else:
         before = getattr(instance, "_audit_before", None) or ({}, {})
-        changes = _changes_between(before, after)
-        if not changes:
-            return
-        action = AuditAction.UPDATE
-    record(action=action, verb=_verb(instance, action), instance=instance, changes=changes)
+        tombstone = _tombstone_action(before, after)
+        if tombstone is not None:
+            changes = [
+                change
+                for change in _changes_between(before, after)
+                if change["field"] in {"deleted_at", "deleted_by"}
+            ]
+            action = tombstone
+            extra = {"soft": True}
+        else:
+            changes = _changes_between(before, after)
+            if not changes:
+                return
+            action = AuditAction.UPDATE
+            extra = None
+    record(
+        action=action,
+        verb=_verb(instance, action),
+        instance=instance,
+        changes=changes,
+        extra=extra,
+    )
 
 
 def _after_delete(sender, instance, **kwargs):
@@ -372,6 +390,20 @@ def _relation_change(field, before, after):
         "old": sorted(str(pk) for pk in before),
         "new": sorted(str(pk) for pk in after),
     }
+
+
+def _tombstone_action(before, after):
+    """Erkennt die Markierung und das Wiederherstellen einer Soft-Delete-Zeile."""
+
+    if "deleted_at" not in before[0] and "deleted_at" not in after[0]:
+        return None
+    old = before[0].get("deleted_at")
+    new = after[0].get("deleted_at")
+    if old in (None, "") and new not in (None, ""):
+        return AuditAction.DELETE
+    if old not in (None, "") and new in (None, ""):
+        return AuditAction.RESTORE
+    return None
 
 
 def _state_of(instance):

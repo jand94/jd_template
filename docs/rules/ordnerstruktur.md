@@ -99,7 +99,19 @@ class Invoice(StandardModel, AuditedModel):
 
 `StandardModel` liefert den UUID-Schlüssel, `created_at`, `updated_at`, `created_by` und `updated_by`. Dieselben Felder nicht erneut deklarieren. `created_by` und `updated_by` füllt der Audit-Kontext, wenn die Middleware ein angemeldetes Konto sieht. `AuditedModel` schreibt Anlegen, Ändern, Löschen und M2M-Änderungen in die Audit-Spur. `audit_exclude` lässt Felder weg. Namen mit `password`, `secret` oder `token` bleiben in der Spur, der Wert steht als `[redacted]`.
 
-`record()` aus `apps.common.services` ist der Weg für Ereignisse ohne Modellzeile, zum Beispiel eine fachliche Freigabe. `QuerySet.update()` und `QuerySet.delete()` umgehen die Signale. Dafür gibt es einen eigenen `record()`-Aufruf.
+`record()` aus `apps.common.services` ist der Weg für Ereignisse ohne Modellzeile, zum Beispiel eine fachliche Freigabe. `QuerySet.update()` und `QuerySet.delete()` umgehen bei einem normalen Modell die Signale. Dafür gibt es einen eigenen `record()`-Aufruf.
+
+`SoftDeleteModel` kommt dazu, wenn die Zeile nach dem Entfernen erreichbar bleiben muss. Es ersetzt `StandardModel` nicht.
+
+```python
+from apps.common.models import AuditedModel, SoftDeleteModel, StandardModel
+
+
+class Invoice(StandardModel, SoftDeleteModel, AuditedModel):
+    number = models.CharField(max_length=32)
+```
+
+`delete()` setzt `deleted_at` und `deleted_by`. `objects` blendet diese Zeilen aus, `all_objects` zeigt sie. `restore()` hebt die Markierung auf. `hard_delete()` entfernt die Zeile und folgt `on_delete`. Die Markierung kaskadiert nicht. Der Base-Manager bleibt `all_objects`, damit Fremdschlüssel und die Audit-Spur die markierte Zeile weiter sehen. Die Audit-Spur führt die Markierung als `delete` und das Wiederherstellen als `restore`, jeweils mit `extra.soft`. Ein eindeutiges Feld braucht eine Unique-Constraint mit der Bedingung `deleted_at__isnull=True`. `QuerySet.delete()` markiert hier jede Zeile und schreibt die Spur.
 
 Das austauschbare Benutzerkonto erbt `AuditedModel`, aber nicht `StandardModel`. Schlüssel, `date_joined` und `last_login` bleiben die von Django. `last_login` steht auf `audit_exclude`. Ein unmanaged Modell auf einer fremden Datenbank erbt `models.Model`, trägt `managed = False` und übernimmt weder UUID noch Autorenschaft aus `common`.
 

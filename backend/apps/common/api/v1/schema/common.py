@@ -6,7 +6,9 @@ AUDIT_LIST_PARAMETERS = [
     OpenApiParameter(
         "action",
         str,
-        description="create, update, delete, access, login, login_failed, logout, or custom.",
+        description=(
+            "create, update, delete, restore, access, login, login_failed, logout, or custom."
+        ),
     ),
     OpenApiParameter(
         "verb",

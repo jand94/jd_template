@@ -46,7 +46,9 @@ apps/<app>/
 
 Neue Fachmodelle erben `StandardModel` und `AuditedModel` aus `apps.common.models`. Damit gibt es UUID, `created_at`, `updated_at`, `created_by`, `updated_by` und eine Audit-Spur. Diese Felder nicht noch einmal anlegen. `created_by` und `updated_by` setzt der Audit-Kontext der Middleware, sobald ein Konto angemeldet ist.
 
-`audit_exclude` nennt Felder, die nicht in der Spur stehen. Felder mit `password`, `secret` oder `token` im Namen werden gespeichert, der Wert nur als `[redacted]`. Ereignisse ohne Modellzeile schreibt `record()` aus `apps.common.services`. `QuerySet.update()` und `QuerySet.delete()` lösen keine Signale aus und brauchen einen eigenen `record()`-Aufruf.
+`audit_exclude` nennt Felder, die nicht in der Spur stehen. Felder mit `password`, `secret` oder `token` im Namen werden gespeichert, der Wert nur als `[redacted]`. Ereignisse ohne Modellzeile schreibt `record()` aus `apps.common.services`. `QuerySet.update()` und `QuerySet.delete()` lösen bei einem normalen Modell keine Signale aus und brauchen einen eigenen `record()`-Aufruf.
+
+`SoftDeleteModel` ist optional und ersetzt `StandardModel` nicht. `delete()` setzt `deleted_at` und `deleted_by`, `objects` blendet die Zeile aus, `all_objects` zeigt sie, `restore()` holt sie zurück, `hard_delete()` entfernt sie und folgt `on_delete`. Die Markierung kaskadiert nicht. Der Base-Manager bleibt `all_objects`, damit Fremdschlüssel und die Audit-Spur die markierte Zeile weiter sehen. Mit `AuditedModel` wird die Markierung als `delete` und das Wiederherstellen als `restore` protokolliert, jeweils mit `extra.soft`. Eine Unique-Constraint gilt nur für `deleted_at__isnull=True`. `QuerySet.delete()` eines Soft-Delete-Modells markiert jede Zeile und schreibt die Spur.
 
 Ausnahme ist das austauschbare Benutzerkonto: es erbt `AuditedModel`, behält aber Djangos Schlüssel, `date_joined` und `last_login`. `last_login` steht in `audit_exclude`. Unmanaged Modelle einer fremden Datenbank erben `models.Model` und nicht `StandardModel`.
 

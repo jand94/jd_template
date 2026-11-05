@@ -12,6 +12,7 @@ class AuditAction(models.TextChoices):
     CREATE = "create", _("Create")
     UPDATE = "update", _("Update")
     DELETE = "delete", _("Delete")
+    RESTORE = "restore", _("Restore")
     ACCESS = "access", _("Access")
     LOGIN = "login", _("Login")
     LOGIN_FAILED = "login_failed", _("Login failed")
