@@ -12,6 +12,7 @@ https://docs.djangoproject.com/en/6.1/ref/settings/
 
 import os
 from pathlib import Path
+from urllib.parse import quote
 
 from django.core.exceptions import ImproperlyConfigured
 
@@ -133,15 +134,24 @@ DATABASES = {
     }
 }
 
+
+def redis_location():
+    host = os.environ.get("REDIS_HOST", "localhost")
+    port = os.environ.get("REDIS_PORT", "6379")
+    password = os.environ.get("REDIS_PASSWORD", "")
+    if password:
+        return "redis://:{}@{}:{}/0".format(quote(password, safe=""), host, port)
+    return f"redis://{host}:{port}/0"
+
+
 CACHES = {
     "default": {
         "BACKEND": "django.core.cache.backends.redis.RedisCache",
-        "LOCATION": "redis://{}:{}".format(
-            os.environ.get("REDIS_HOST", "localhost"),
-            os.environ.get("REDIS_PORT", "6379"),
-        ),
+        "LOCATION": redis_location(),
     }
 }
+
+FRONTEND_ORIGIN = os.environ.get("FRONTEND_ORIGIN", "http://127.0.0.1:3000").rstrip("/")
 
 SESSION_ENGINE = "django.contrib.sessions.backends.cached_db"
 

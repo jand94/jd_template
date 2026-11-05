@@ -173,7 +173,9 @@ export function SiteHeader({ projectName, items, accountMenu, mobileAccount }: S
                       }`}
                       onClick={closeMenu}
                     >
-                      {itemIcons[item.href] ? <Icon icon={itemIcons[item.href]} className="size-5" /> : null}
+                      {itemIcons[item.href] ? (
+                        <Icon icon={itemIcons[item.href]} className="size-5" />
+                      ) : null}
                       {item.label}
                     </Link>
                   </li>

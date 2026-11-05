@@ -24,7 +24,8 @@ endif
 .PHONY: help dev up down restart start stop build rebuild logs ps shell \
 	migrate makemigrations createsuperuser manage check check-deploy check-migrations \
 	test test-unit test-integration test-api test-frontend loadtest \
-	lint lint-python format-python typecheck build-frontend install-backend install-frontend \
+	lint lint-python format-python format-frontend typecheck build-frontend audit \
+	install-backend install-frontend \
 	psql redis-cli urls config pull destroy create_app create_feature clean-pyc prod
 
 PROD_COMPOSE := docker compose --env-file docker/.env.prod -f docker/compose.prod.yml
@@ -199,11 +200,18 @@ format-python: ## Ruff-Format im Backend-Container
 	$(COMPOSE) exec -T backend ruff format .
 	$(COMPOSE) exec -T backend ruff check --fix .
 
+format-frontend: ## Prettier im Frontend-Container
+	$(COMPOSE) exec -T frontend npm run format:check
+
 typecheck: ## TypeScript im Frontend-Container
 	$(COMPOSE) exec -T frontend npx tsc --noEmit --pretty false
 
 build-frontend: ## Next.js-Build im Frontend-Container
 	$(COMPOSE) exec -T frontend npm run build
+
+audit: ## pip-audit und npm audit
+	$(COMPOSE) exec -T backend pip-audit -r requirements.txt
+	$(COMPOSE) exec -T frontend npm audit --audit-level=high
 
 install-backend: ## Python-Abhängigkeiten im Backend-Container installieren
 	$(COMPOSE) exec -T backend pip install --no-cache-dir -r requirements-dev.txt

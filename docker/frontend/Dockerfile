@@ -43,14 +43,20 @@ FROM node:24-bookworm-slim AS prod
 WORKDIR /app
 
 ENV NODE_ENV=production \
-    NEXT_TELEMETRY_DISABLED=1
+    NEXT_TELEMETRY_DISABLED=1 \
+    HOSTNAME=0.0.0.0 \
+    PORT=3000
 
-COPY --from=build /app/package.json /app/package-lock.json ./
-COPY --from=build /app/node_modules ./node_modules
+COPY package.json package-lock.json ./
+RUN npm ci --omit=dev
+
 COPY --from=build /app/.next ./.next
 COPY --from=build /app/public ./public
 COPY --from=build /app/next.config.ts ./next.config.ts
+RUN chown -R node:node /app
+
+USER node
 
 EXPOSE 3000
 
-CMD ["npm", "start"]
+CMD ["node_modules/.bin/next", "start", "--hostname", "0.0.0.0", "--port", "3000"]

@@ -28,7 +28,9 @@ export function AccountLinks() {
 
   return (
     <div className="mt-2 border-t border-border px-2 pt-2">
-      <p className="px-4 py-2 text-xs font-medium tracking-wide text-muted-foreground uppercase">Konto</p>
+      <p className="px-4 py-2 text-xs font-medium tracking-wide text-muted-foreground uppercase">
+        Konto
+      </p>
       <ul className="flex flex-col">
         {account.user ? (
           <>
@@ -39,7 +41,12 @@ export function AccountLinks() {
               </Link>
             </li>
             <li>
-              <button type="button" className={`${itemClass} text-danger`} disabled={pending} onClick={onLogout}>
+              <button
+                type="button"
+                className={`${itemClass} text-danger`}
+                disabled={pending}
+                onClick={onLogout}
+              >
                 <Icon icon={LogOut} className="size-5" />
                 {pending ? "Wird abgemeldet" : "Abmelden"}
               </button>

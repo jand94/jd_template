@@ -26,8 +26,13 @@ COPY . .
 ENV DEBUG=false
 RUN SECRET_KEY=collectstatic-build-key-not-used-at-runtime-0123456789 \
     ALLOWED_HOSTS=localhost \
-    python manage.py collectstatic --noinput
+    python manage.py collectstatic --noinput \
+    && useradd --create-home --uid 1000 --shell /usr/sbin/nologin app \
+    && mkdir -p /app/media \
+    && chown -R app:app /app
+
+USER app
 
 EXPOSE 8000
 
-CMD ["gunicorn", "backend.wsgi:application", "--bind", "0.0.0.0:8000", "--workers", "3", "--access-logfile", "-"]
+CMD ["gunicorn", "-c", "gunicorn.conf.py", "backend.wsgi:application"]

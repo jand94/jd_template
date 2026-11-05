@@ -58,3 +58,7 @@ make loadtest
 ```
 
 `make loadtest` startet Locust headless mit 100 Benutzern für 30 Sekunden. `LOCUST_USERS`, `LOCUST_SPAWN_RATE` und `LOCUST_RUN_TIME` ändern den Lauf.
+
+## Frontend
+
+Vitest mit happy-dom prüft den API-Client und einzelne Oberflächen, darunter Formulare und Fehlerseiten. Die Dateien liegen neben dem Modul als `*.test.ts` oder `*.test.tsx`. `@testing-library/react` rendert die Komponente. `make test-frontend` startet `vitest run`.

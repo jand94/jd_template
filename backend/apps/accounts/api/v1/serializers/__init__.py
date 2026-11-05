@@ -1,4 +1,5 @@
 from apps.accounts.api.v1.serializers.auth import (
+    EmailVerificationSerializer,
     LoginSerializer,
     PasswordChangeSerializer,
     PasswordResetConfirmSerializer,
@@ -8,6 +9,7 @@ from apps.accounts.api.v1.serializers.auth import (
 from apps.accounts.api.v1.serializers.profile import UserSerializer, UserUpdateSerializer
 
 __all__ = [
+    "EmailVerificationSerializer",
     "LoginSerializer",
     "PasswordChangeSerializer",
     "PasswordResetConfirmSerializer",

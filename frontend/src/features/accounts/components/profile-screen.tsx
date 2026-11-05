@@ -9,6 +9,7 @@ import {
   ApiError,
   changePassword,
   fieldMessage,
+  sendEmailVerification,
   removeAvatar,
   updateProfile,
   uploadAvatar,
@@ -16,7 +17,14 @@ import {
   type ProfileInput,
 } from "@/features/accounts/api/session";
 import { AccountAvatar } from "@/features/accounts/components/account-avatar";
-import { FormError, FormStatus, SelectField, SubmitButton, TextArea, TextField } from "@/features/accounts/components/fields";
+import {
+  FormError,
+  FormStatus,
+  SelectField,
+  SubmitButton,
+  TextArea,
+  TextField,
+} from "@/features/accounts/components/fields";
 import { useAccount } from "@/features/accounts/hooks/account-context";
 import { accountDisplayName, mediaUrl } from "@/features/accounts/profile";
 
@@ -68,6 +76,9 @@ function ProfileForms({ user, onUser }: { user: Account; onUser: (user: Account)
   const [passwordError, setPasswordError] = useState<unknown>(null);
   const [passwordPending, setPasswordPending] = useState(false);
   const [passwordSaved, setPasswordSaved] = useState(false);
+  const [verifyPending, setVerifyPending] = useState(false);
+  const [verifySent, setVerifySent] = useState(false);
+  const [verifyError, setVerifyError] = useState<unknown>(null);
 
   useEffect(() => {
     return () => {
@@ -227,11 +238,37 @@ function ProfileForms({ user, onUser }: { user: Account; onUser: (user: Account)
             <p className="mt-1 text-sm text-muted-foreground">@{user.username}</p>
           </div>
           <dl className="flex flex-col gap-2 text-sm">
-            <StatusItem term="E-Mail" value={user.is_email_verified ? "Bestätigt" : "Nicht bestätigt"} />
-            <StatusItem term="Telefon" value={user.is_phone_verified ? "Bestätigt" : "Nicht bestätigt"} />
+            <StatusItem
+              term="E-Mail"
+              value={user.is_email_verified ? "Bestätigt" : "Nicht bestätigt"}
+            />
+            <StatusItem
+              term="Telefon"
+              value={user.is_phone_verified ? "Bestätigt" : "Nicht bestätigt"}
+            />
             <StatusItem term="Alter" value={user.age === null ? "—" : String(user.age)} />
             <StatusItem term="Dabei seit" value={formatDate(user.date_joined)} />
           </dl>
+          {user.is_email_verified ? null : (
+            <button
+              type="button"
+              className={buttonSecondary}
+              disabled={verifyPending}
+              onClick={() => {
+                setVerifyPending(true);
+                setVerifyError(null);
+                void sendEmailVerification()
+                  .then(() => setVerifySent(true))
+                  .catch((caught: unknown) => setVerifyError(caught))
+                  .finally(() => setVerifyPending(false));
+              }}
+            >
+              <Icon icon={Mail} />
+              Bestätigung senden
+            </button>
+          )}
+          {verifySent ? <FormStatus>Der Link ist unterwegs.</FormStatus> : null}
+          {verifyError instanceof ApiError ? <FormError>{verifyError.message}</FormError> : null}
           <div className="flex flex-col gap-2">
             <label htmlFor={fileId} className={`${buttonSecondary} cursor-pointer`}>
               <Icon icon={ImagePlus} />
@@ -552,7 +589,10 @@ function ProfileForms({ user, onUser }: { user: Account; onUser: (user: Account)
           error={fieldMessage(passwordError, "password_confirm")}
         />
         <SubmitButton pending={passwordPending}>Passwort speichern</SubmitButton>
-        <Link href="/passwort-vergessen" className="inline-flex min-h-11 items-center gap-2 text-sm font-medium text-foreground hover:text-accent">
+        <Link
+          href="/passwort-vergessen"
+          className="inline-flex min-h-11 items-center gap-2 text-sm font-medium text-foreground hover:text-accent"
+        >
           <Icon icon={Mail} />
           Passwort per E-Mail zurücksetzen
         </Link>
@@ -561,7 +601,15 @@ function ProfileForms({ user, onUser }: { user: Account; onUser: (user: Account)
   );
 }
 
-function Section({ icon, title, children }: { icon: typeof UserRound; title: string; children: ReactNode }) {
+function Section({
+  icon,
+  title,
+  children,
+}: {
+  icon: typeof UserRound;
+  title: string;
+  children: ReactNode;
+}) {
   return (
     <section className={`${panelClass} flex flex-col gap-5`}>
       <h2 className="flex items-center gap-2 text-lg font-semibold">
@@ -614,7 +662,8 @@ function draftFrom(user: Account): Draft {
 
 function avatarFileMessage(file: File): string | null {
   const extension = file.name.split(".").pop()?.toLowerCase() ?? "";
-  const allowedExtension = extension === "jpg" || extension === "jpeg" || extension === "png" || extension === "webp";
+  const allowedExtension =
+    extension === "jpg" || extension === "jpeg" || extension === "png" || extension === "webp";
   const allowedType =
     file.type === "image/jpeg" ||
     file.type === "image/jpg" ||

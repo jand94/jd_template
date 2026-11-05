@@ -1,5 +1,6 @@
 import re
 from io import BytesIO
+from urllib.parse import parse_qs, urlparse
 
 import pytest
 from django.core import mail
@@ -11,6 +12,12 @@ from rest_framework.test import APIClient
 from apps.accounts.models import User
 
 PASSWORD = "a-long-password-99"
+
+
+def _mail_query(body):
+    match = re.search(r"https?://\S+", body)
+    assert match is not None
+    return parse_qs(urlparse(match.group(0)).query)
 
 
 @pytest.fixture(autouse=True)
@@ -63,6 +70,10 @@ def test_register_starts_a_session_and_returns_the_profile(api_client):
     assert me.status_code == 200
     assert me.json()["first_name"] == "Ada"
     assert me.json()["terms_accepted_at"] is not None
+    assert me.json()["is_email_verified"] is False
+    assert len(mail.outbox) == 1
+    assert "bestätigen" in mail.outbox[0].subject
+    assert "/email-bestaetigen?" in mail.outbox[0].body
 
 
 @pytest.mark.api
@@ -96,6 +107,54 @@ def test_me_requires_a_session_and_profile_updates_normalize_the_country(api_cli
     assert body["country"] == "GB"
     assert body["email"] == "ada@example.com"
     assert body["is_email_verified"] is False
+
+
+@pytest.mark.api
+@pytest.mark.django_db
+def test_email_verification_confirms_and_a_new_address_needs_a_new_link(api_client):
+    _register(api_client)
+    query = _mail_query(mail.outbox[0].body)
+    confirmed = api_client.post(
+        reverse("accounts:email-verify"),
+        {"uid": query["uid"][0], "token": query["token"][0]},
+        format="json",
+    )
+    assert confirmed.status_code == 204
+    assert api_client.get(reverse("accounts:me")).json()["is_email_verified"] is True
+
+    reused = api_client.post(
+        reverse("accounts:email-verify"),
+        {"uid": query["uid"][0], "token": query["token"][0]},
+        format="json",
+    )
+    assert reused.status_code == 400
+
+    mail.outbox.clear()
+    changed = api_client.patch(
+        reverse("accounts:me"),
+        {"email": "ada.lovelace@example.com"},
+        format="json",
+    )
+    assert changed.status_code == 200
+    assert changed.json()["is_email_verified"] is False
+    assert "/email-bestaetigen?" in mail.outbox[0].body
+
+    sent = api_client.post(reverse("accounts:email-verify-send"))
+    assert sent.status_code == 204
+    assert len(mail.outbox) == 2
+
+    fresh = _mail_query(mail.outbox[-1].body)
+    again = api_client.post(
+        reverse("accounts:email-verify"),
+        {"uid": fresh["uid"][0], "token": fresh["token"][0]},
+        format="json",
+    )
+    assert again.status_code == 204
+    assert api_client.get(reverse("accounts:me")).json()["is_email_verified"] is True
+
+    mail.outbox.clear()
+    api_client.post(reverse("accounts:email-verify-send"))
+    assert mail.outbox == []
 
 
 @pytest.mark.api
@@ -174,8 +233,10 @@ def test_password_reset_roundtrip_does_not_reveal_unknown_emails(api_client):
     assert requested.status_code == 204
     body = mail.outbox[0].body
     assert "zurücksetzen" in mail.outbox[0].subject
-    uid = re.search(r"uid: (\S+)", body).group(1)
-    token = re.search(r"token: (\S+)", body).group(1)
+    assert "/passwort-setzen?" in body
+    query = _mail_query(body)
+    uid = query["uid"][0]
+    token = query["token"][0]
 
     confirmed = api_client.post(
         reverse("accounts:password-reset-confirm"),
@@ -217,8 +278,9 @@ def test_password_reset_invalidates_other_sessions(api_client):
     first.post(reverse("accounts:logout"))
     first.post(reverse("accounts:password-reset"), {"email": "ada@example.com"}, format="json")
     body = mail.outbox[0].body
-    uid = re.search(r"uid: (\S+)", body).group(1)
-    token = re.search(r"token: (\S+)", body).group(1)
+    query = _mail_query(body)
+    uid = query["uid"][0]
+    token = query["token"][0]
 
     confirmed = first.post(
         reverse("accounts:password-reset-confirm"),

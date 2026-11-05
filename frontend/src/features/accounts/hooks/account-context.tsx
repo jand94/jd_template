@@ -1,7 +1,11 @@
 "use client";
 
 import { createContext, useContext, useEffect, useMemo, useState, type ReactNode } from "react";
-import { currentUser, logout as logoutRequest, type Account } from "@/features/accounts/api/session";
+import {
+  currentUser,
+  logout as logoutRequest,
+  type Account,
+} from "@/features/accounts/api/session";
 
 async function readCurrentUser(): Promise<Account | null> {
   try {

@@ -32,7 +32,8 @@ export function LoginForm() {
     }
   }
 
-  const formError = error instanceof ApiError && Object.keys(error.fields).length === 0 ? error.message : null;
+  const formError =
+    error instanceof ApiError && Object.keys(error.fields).length === 0 ? error.message : null;
 
   return (
     <AuthPanel
@@ -41,11 +42,17 @@ export function LoginForm() {
       description="Mit Benutzername und Passwort eine Sitzung starten."
       footer={
         <p className="flex flex-col gap-1 text-sm sm:flex-row sm:items-center sm:justify-between">
-          <Link href="/passwort-vergessen" className="inline-flex min-h-11 items-center gap-2 font-medium text-foreground hover:text-accent">
+          <Link
+            href="/passwort-vergessen"
+            className="inline-flex min-h-11 items-center gap-2 font-medium text-foreground hover:text-accent"
+          >
             <Icon icon={KeyRound} />
             Passwort vergessen
           </Link>
-          <Link href="/registrieren" className="inline-flex min-h-11 items-center gap-2 font-medium text-foreground hover:text-accent">
+          <Link
+            href="/registrieren"
+            className="inline-flex min-h-11 items-center gap-2 font-medium text-foreground hover:text-accent"
+          >
             <Icon icon={UserRound} />
             Konto anlegen
           </Link>

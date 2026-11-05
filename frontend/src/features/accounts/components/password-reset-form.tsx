@@ -6,7 +6,12 @@ import { useState, type FormEvent } from "react";
 import { Icon } from "@/components/ui/icon";
 import { ApiError, fieldMessage, requestPasswordReset } from "@/features/accounts/api/session";
 import { AuthPanel } from "@/features/accounts/components/auth-panel";
-import { FormError, FormStatus, SubmitButton, TextField } from "@/features/accounts/components/fields";
+import {
+  FormError,
+  FormStatus,
+  SubmitButton,
+  TextField,
+} from "@/features/accounts/components/fields";
 
 export function PasswordResetForm() {
   const [email, setEmail] = useState("");
@@ -34,7 +39,10 @@ export function PasswordResetForm() {
       title="Passwort vergessen"
       description="Wenn ein Konto zu dieser E-Mail existiert, senden wir einen Hinweis."
       footer={
-        <Link href="/anmelden" className="inline-flex min-h-11 items-center gap-2 text-sm font-medium text-foreground hover:text-accent">
+        <Link
+          href="/anmelden"
+          className="inline-flex min-h-11 items-center gap-2 text-sm font-medium text-foreground hover:text-accent"
+        >
           <Icon icon={LogIn} />
           Zurück zur Anmeldung
         </Link>
@@ -47,7 +55,11 @@ export function PasswordResetForm() {
         </FormStatus>
       ) : (
         <form className="flex flex-col gap-5" onSubmit={onSubmit}>
-          <FormError>{error instanceof ApiError && Object.keys(error.fields).length === 0 ? error.message : null}</FormError>
+          <FormError>
+            {error instanceof ApiError && Object.keys(error.fields).length === 0
+              ? error.message
+              : null}
+          </FormError>
           <TextField
             label="E-Mail"
             name="email"

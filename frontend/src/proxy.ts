@@ -1,6 +1,12 @@
 import { NextResponse, type NextRequest } from "next/server";
 
-const publicPaths = new Set(["/anmelden", "/registrieren", "/passwort-vergessen"]);
+const publicPaths = new Set([
+  "/anmelden",
+  "/registrieren",
+  "/passwort-vergessen",
+  "/passwort-setzen",
+  "/email-bestaetigen",
+]);
 
 function normalize(pathname: string): string {
   if (pathname.length > 1 && pathname.endsWith("/")) {

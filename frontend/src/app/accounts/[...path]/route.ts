@@ -2,7 +2,13 @@ import { NextRequest, NextResponse } from "next/server";
 
 const apiOrigin = process.env.API_ORIGIN ?? "http://backend:8000";
 
-const forwardedRequestHeaders = ["cookie", "x-csrftoken", "content-type", "accept", "accept-language"];
+const forwardedRequestHeaders = [
+  "cookie",
+  "x-csrftoken",
+  "content-type",
+  "accept",
+  "accept-language",
+];
 
 type RouteContext = {
   params: Promise<{ path: string[] }>;

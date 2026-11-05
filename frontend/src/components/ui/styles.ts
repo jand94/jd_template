@@ -8,4 +8,5 @@ export const buttonPrimary = `inline-flex h-11 items-center justify-center gap-2
 
 export const buttonSecondary = `inline-flex h-11 items-center justify-center gap-2 rounded-lg border border-border bg-card px-4 text-sm font-medium text-foreground hover:bg-muted ${pressable} ${focusRing}`;
 
-export const panelClass = "rounded-2xl border border-border bg-card p-6 shadow-[var(--shadow)] sm:p-8";
+export const panelClass =
+  "rounded-2xl border border-border bg-card p-6 shadow-[var(--shadow)] sm:p-8";

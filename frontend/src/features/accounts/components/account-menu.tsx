@@ -76,7 +76,11 @@ export function AccountMenu() {
         onClick={() => setOpenPath(open ? null : pathname)}
       >
         {account.user ? (
-          <AccountAvatar key={account.user.avatar ?? "none"} user={account.user} className="size-7 shrink-0 text-xs" />
+          <AccountAvatar
+            key={account.user.avatar ?? "none"}
+            user={account.user}
+            className="size-7 shrink-0 text-xs"
+          />
         ) : (
           <Icon icon={CircleUser} className="size-4 shrink-0" />
         )}

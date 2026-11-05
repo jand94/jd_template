@@ -46,16 +46,20 @@ export function RegisterForm() {
     }
   }
 
-  const formError = error instanceof ApiError && Object.keys(error.fields).length === 0 ? error.message : null;
+  const formError =
+    error instanceof ApiError && Object.keys(error.fields).length === 0 ? error.message : null;
   const termsError = fieldMessage(error, "terms_accepted");
 
   return (
     <AuthPanel
       icon={UserRound}
       title="Registrieren"
-      description="Ein Konto anlegen und direkt angemeldet bleiben."
+      description="Ein Konto anlegen und angemeldet bleiben. Die Bestätigung der E-Mail folgt per Link."
       footer={
-        <Link href="/anmelden" className="inline-flex min-h-11 items-center gap-2 text-sm font-medium text-foreground hover:text-accent">
+        <Link
+          href="/anmelden"
+          className="inline-flex min-h-11 items-center gap-2 text-sm font-medium text-foreground hover:text-accent"
+        >
           <Icon icon={LogIn} />
           Schon ein Konto? Anmelden
         </Link>

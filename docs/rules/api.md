@@ -17,3 +17,7 @@ Fehler, die der Client als `ApiError` liest:
 - Unbehandelte Ausnahmen antworten mit Status 500 und `{"detail": "Die Anfrage ist fehlgeschlagen."}`. Der Log enthält die Ursache, der Körper nicht.
 
 Schema und Swagger bleiben ohne Sitzung erreichbar.
+
+Die Registrierung startet eine Sitzung und schickt einen Bestätigungslink an die E-Mail. `POST /accounts/v1/email/verify/` setzt `email_verified_at`. Der Körper enthält `uid` und `token` aus dem Link `{FRONTEND_ORIGIN}/email-bestaetigen`. Ein angemeldetes Konto fordert denselben Link mit `POST /accounts/v1/email/verify/send/` erneut an, solange die Adresse offen ist. Eine geänderte E-Mail löscht die Bestätigung und verschickt einen neuen Link.
+
+`POST /accounts/v1/password/reset/` antwortet immer gleich. Die Mail enthält `{FRONTEND_ORIGIN}/passwort-setzen` mit `uid` und `token`. `POST /accounts/v1/password/reset/confirm/` setzt das Passwort.

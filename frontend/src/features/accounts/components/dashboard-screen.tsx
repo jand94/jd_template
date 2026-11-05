@@ -59,7 +59,9 @@ export function DashboardScreen() {
         <li className={panelClass}>
           <h2 className="text-sm text-muted-foreground">Angemeldet als</h2>
           <p className="mt-2 text-lg font-semibold tracking-tight break-words">{user.username}</p>
-          <p className="mt-3 text-sm leading-6 text-pretty text-muted-foreground">{brand.apiDescription}</p>
+          <p className="mt-3 text-sm leading-6 text-pretty text-muted-foreground">
+            {brand.apiDescription}
+          </p>
         </li>
       </ul>
     </article>

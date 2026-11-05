@@ -1,7 +1,9 @@
+from urllib.parse import urlencode
+
 from django.conf import settings
 from django.contrib.auth import authenticate, login
 from django.contrib.auth.password_validation import validate_password
-from django.contrib.auth.tokens import default_token_generator
+from django.contrib.auth.tokens import PasswordResetTokenGenerator, default_token_generator
 from django.core.exceptions import ValidationError
 from django.core.mail import send_mail
 from django.db import IntegrityError, transaction
@@ -9,7 +11,11 @@ from django.utils import timezone
 from django.utils.encoding import force_bytes, force_str
 from django.utils.http import urlsafe_base64_decode, urlsafe_base64_encode
 
-from apps.accounts.exceptions import InvalidCredentials, InvalidPasswordReset
+from apps.accounts.exceptions import (
+    InvalidCredentials,
+    InvalidEmailVerification,
+    InvalidPasswordReset,
+)
 from apps.accounts.models import User
 
 PROFILE_UPDATE_FIELDS = (
@@ -44,6 +50,22 @@ _ALLOWED_PROFILE_KEYS = frozenset(("email", *PROFILE_UPDATE_FIELDS))
 _PHONE_FIELDS = frozenset(("phone", "mobile"))
 
 
+class EmailVerificationTokenGenerator(PasswordResetTokenGenerator):
+    key_salt = "apps.accounts.email-verification"
+
+    def _make_hash_value(self, user, timestamp):
+        verified = "" if user.email_verified_at is None else user.email_verified_at.isoformat()
+        return f"{user.pk}{user.email}{verified}{timestamp}"
+
+
+email_verification_token = EmailVerificationTokenGenerator()
+
+
+def _frontend_link(path, **query):
+    origin = settings.FRONTEND_ORIGIN.rstrip("/")
+    return f"{origin}{path}?{urlencode(query)}"
+
+
 def register_user(*, username, email, password, terms_accepted, first_name="", last_name=""):
     if not terms_accepted:
         raise ValidationError({"terms_accepted": "You must accept the terms."})
@@ -76,12 +98,14 @@ def update_profile(user, data):
     if unknown:
         raise ValidationError({field: "This field cannot be updated." for field in sorted(unknown)})
 
+    old_email = user.email
     old_avatar = user.avatar
     clear_avatar = "avatar" in data and not data.get("avatar")
     new_avatar = None if clear_avatar else data.get("avatar")
     replace_avatar = bool(new_avatar) and new_avatar != old_avatar
 
-    if "email" in data and data["email"] != user.email:
+    email_changed = "email" in data and data["email"] != old_email
+    if email_changed:
         user.email_verified_at = None
     if any(field in data and data[field] != getattr(user, field) for field in _PHONE_FIELDS):
         user.phone_verified_at = None
@@ -97,6 +121,8 @@ def update_profile(user, data):
         old_avatar.delete(save=True)
     elif replace_avatar and old_avatar:
         old_avatar.delete(save=False)
+    if email_changed:
+        send_email_verification(user)
     return user
 
 
@@ -115,17 +141,37 @@ def request_password_reset(*, email):
         return
     uid = urlsafe_base64_encode(force_bytes(user.pk))
     token = default_token_generator.make_token(user)
+    link = _frontend_link("/passwort-setzen", uid=uid, token=token)
     send_mail(
         subject=f"Passwort für {settings.PROJECT_NAME} zurücksetzen",
-        message=(
-            f"Lege ein neues Passwort über die {settings.API_TITLE} fest.\n"
-            f"uid: {uid}\n"
-            f"token: {token}\n"
-        ),
+        message=(f"Lege ein neues Passwort für {settings.PROJECT_NAME} fest:\n{link}\n"),
         from_email=settings.DEFAULT_FROM_EMAIL,
         recipient_list=[user.email],
         using="default",
     )
+
+
+def send_email_verification(user):
+    uid = urlsafe_base64_encode(force_bytes(user.pk))
+    token = email_verification_token.make_token(user)
+    link = _frontend_link("/email-bestaetigen", uid=uid, token=token)
+    send_mail(
+        subject=f"E-Mail für {settings.PROJECT_NAME} bestätigen",
+        message=(f"Bestätige die E-Mail-Adresse für {settings.PROJECT_NAME}:\n{link}\n"),
+        from_email=settings.DEFAULT_FROM_EMAIL,
+        recipient_list=[user.email],
+        using="default",
+    )
+
+
+def confirm_email_verification(*, uid, token):
+    user = _user_from_uid(uid)
+    if user is None or not user.is_active or not email_verification_token.check_token(user, token):
+        raise InvalidEmailVerification()
+    if user.email_verified_at is None:
+        user.email_verified_at = timezone.now()
+        user.save(update_fields=["email_verified_at"])
+    return user
 
 
 def confirm_password_reset(*, uid, token, new_password):

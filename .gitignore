@@ -2,3 +2,4 @@ docker/.env
 docker/.env.prod
 .DS_Store
 .hypothesis/
+.ruff_cache/

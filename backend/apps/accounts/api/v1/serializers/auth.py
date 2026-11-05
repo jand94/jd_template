@@ -3,7 +3,7 @@ from django.core.exceptions import ValidationError as DjangoValidationError
 from rest_framework import serializers
 
 from apps.accounts.models import User
-from apps.accounts.services import confirm_password_reset, register_user
+from apps.accounts.services import confirm_email_verification, confirm_password_reset, register_user
 
 
 class RegisterSerializer(serializers.ModelSerializer):
@@ -92,4 +92,15 @@ class PasswordResetConfirmSerializer(serializers.Serializer):
             uid=self.validated_data["uid"],
             token=self.validated_data["token"],
             new_password=self.validated_data["password"],
+        )
+
+
+class EmailVerificationSerializer(serializers.Serializer):
+    uid = serializers.CharField()
+    token = serializers.CharField()
+
+    def save(self):
+        return confirm_email_verification(
+            uid=self.validated_data["uid"],
+            token=self.validated_data["token"],
         )

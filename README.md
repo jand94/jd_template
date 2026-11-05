@@ -74,7 +74,7 @@ Mit den Ports aus der Vorlage:
 | OpenAPI-Schema | `http://127.0.0.1:8000/api/schema/` |
 | Django-Admin | `http://127.0.0.1:8000/admin/` |
 
-Ohne Sitzung leitet das Frontend auf `/anmelden`. Erreichbar ohne Anmeldung sind nur `/anmelden`, `/registrieren` und `/passwort-vergessen`. Nach der Anmeldung öffnet `/dashboard`. `/` mit Sitzung leitet dorthin weiter. Profil und System liegen unter `/profil` und `/system`.
+Ohne Sitzung leitet das Frontend auf `/anmelden`. Erreichbar ohne Anmeldung sind `/anmelden`, `/registrieren`, `/passwort-vergessen`, `/passwort-setzen` und `/email-bestaetigen`. Nach der Anmeldung öffnet `/dashboard`. `/` mit Sitzung leitet dorthin weiter. Profil und System liegen unter `/profil` und `/system`.
 
 Der Superuser aus `docker/.env` gilt für das Django-Admin und für die Anmeldung im Frontend. Beide Oberflächen teilen sich die Session-Cookies, weil Cookies nicht an den Port gebunden sind.
 
@@ -146,7 +146,7 @@ make migrate
 make create_feature billing
 ```
 
-Dieselbe Zeichenregel. Reserviert sind bestehende Routen und Ordner, darunter `accounts`, `anmelden`, `app`, `components`, `config`, `dashboard`, `features`, `lib`, `media`, `passwort-vergessen`, `profil`, `registrieren` und `system`.
+Dieselbe Zeichenregel. Reserviert sind bestehende Routen und Ordner, darunter `accounts`, `anmelden`, `app`, `components`, `config`, `dashboard`, `email-bestaetigen`, `features`, `lib`, `media`, `passwort-setzen`, `passwort-vergessen`, `profil`, `registrieren` und `system`.
 
 Das Skript [scripts/create_feature.py](scripts/create_feature.py):
 
@@ -178,7 +178,9 @@ make test-frontend        # Vitest
 make typecheck            # tsc --noEmit im Frontend
 make lint                 # Ruff und ESLint
 make lint-python          # nur Ruff
+make format-frontend      # Prettier
 make build-frontend       # next build
+make audit                # pip-audit und npm audit
 make check-deploy         # manage.py check --deploy
 make check-migrations     # makemigrations --check
 make loadtest             # Locust, 100 Benutzer, 30 Sekunden
@@ -186,7 +188,7 @@ make loadtest             # Locust, 100 Benutzer, 30 Sekunden
 
 `LOCUST_USERS`, `LOCUST_SPAWN_RATE` und `LOCUST_RUN_TIME` ändern den Lastlauf. Locust braucht `backend/.venv` und die Pakete aus `backend/requirements-dev.txt`. Schichten, Marker und Ablage stehen in [docs/rules/testing.md](docs/rules/testing.md).
 
-CI liegt in [.github/workflows/ci.yml](.github/workflows/ci.yml). Bei Push und Pull Request kopiert der Lauf `docker/.env.example` nach `docker/.env`, startet den Stack und führt Deploy-Check, Migrationscheck, pytest, Vitest, Typecheck, Lint und den Frontend-Build aus.
+CI liegt in [.github/workflows/ci.yml](.github/workflows/ci.yml). Bei Push und Pull Request kopiert der Lauf `docker/.env.example` nach `docker/.env`, startet den Stack und führt Deploy-Check, Migrationscheck, pytest, Vitest, Typecheck, Lint, Prettier, Audit und den Frontend-Build aus. Ein zweiter Job startet `docker/compose.prod.yml` und prüft Bereitschaft und die Anmeldeseite.
 
 Produktion startet über `make prod`, nachdem `docker/.env.prod.example` nach `docker/.env.prod` kopiert wurde. Ablauf und Variablen stehen in [docs/rules/deploy.md](docs/rules/deploy.md).
 

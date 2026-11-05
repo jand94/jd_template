@@ -135,6 +135,23 @@ export async function requestPasswordReset(email: string): Promise<void> {
   await api.parse<void>(await api.send("/password/reset", "POST", { email }));
 }
 
+export async function confirmPasswordReset(input: {
+  uid: string;
+  token: string;
+  password: string;
+  password_confirm: string;
+}): Promise<void> {
+  await api.parse<void>(await api.send("/password/reset/confirm", "POST", input));
+}
+
+export async function confirmEmail(input: { uid: string; token: string }): Promise<void> {
+  await api.parse<void>(await api.send("/email/verify", "POST", input));
+}
+
+export async function sendEmailVerification(): Promise<void> {
+  await api.parse<void>(await api.send("/email/verify/send", "POST"));
+}
+
 export function fieldMessage(error: unknown, field: string): string | undefined {
   if (!(error instanceof ApiError)) {
     return undefined;
@@ -143,7 +160,10 @@ export function fieldMessage(error: unknown, field: string): string | undefined 
   if (!message) {
     return undefined;
   }
-  if (message === "The two password fields didn’t match." || message === "The two password fields didn't match.") {
+  if (
+    message === "The two password fields didn’t match." ||
+    message === "The two password fields didn't match."
+  ) {
     return "Die Passwörter stimmen nicht überein.";
   }
   if (message === "You must accept the terms.") {
@@ -151,6 +171,12 @@ export function fieldMessage(error: unknown, field: string): string | undefined 
   }
   if (message === "The current password is incorrect.") {
     return "Das aktuelle Passwort ist falsch.";
+  }
+  if (message === "This password reset link is invalid or has expired.") {
+    return "Der Link ist ungültig oder abgelaufen.";
+  }
+  if (message === "This email confirmation link is invalid or has expired.") {
+    return "Der Bestätigungslink ist ungültig oder abgelaufen.";
   }
   if (message === "A user with that email address already exists.") {
     return "Diese E-Mail wird bereits verwendet.";

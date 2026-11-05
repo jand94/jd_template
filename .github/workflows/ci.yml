@@ -55,5 +55,47 @@ jobs:
       - name: Lint
         run: make lint
 
+      - name: Format
+        run: make format-frontend
+
+      - name: Audit
+        run: make audit
+
       - name: Frontend-Build
         run: make build-frontend
+
+  prod:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Produktions-Stack starten
+        run: |
+          cp docker/.env.prod.example docker/.env.prod
+          make prod
+
+      - name: Backend ist bereit
+        run: |
+          for _ in $(seq 1 40); do
+            if docker compose --env-file docker/.env.prod -f docker/compose.prod.yml exec -T backend python -c "import urllib.request; urllib.request.urlopen(urllib.request.Request('http://127.0.0.1:8000/api/v1/ready/', headers={'X-Forwarded-Proto': 'https'}))"; then
+              exit 0
+            fi
+            sleep 5
+          done
+          docker compose --env-file docker/.env.prod -f docker/compose.prod.yml logs
+          exit 1
+
+      - name: Frontend antwortet
+        run: |
+          for _ in $(seq 1 30); do
+            if curl -fsS "http://127.0.0.1:3000/anmelden" >/dev/null; then
+              exit 0
+            fi
+            sleep 3
+          done
+          docker compose --env-file docker/.env.prod -f docker/compose.prod.yml logs frontend
+          exit 1
+
+      - name: Stack stoppen
+        if: always()
+        run: docker compose --env-file docker/.env.prod -f docker/compose.prod.yml down -v

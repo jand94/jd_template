@@ -17,6 +17,7 @@ from apps.accounts.api.v1.permissions import (
 )
 from apps.accounts.api.v1.schema import accounts_schema
 from apps.accounts.api.v1.serializers import (
+    EmailVerificationSerializer,
     LoginSerializer,
     PasswordChangeSerializer,
     PasswordResetConfirmSerializer,
@@ -24,11 +25,16 @@ from apps.accounts.api.v1.serializers import (
     RegisterSerializer,
     UserSerializer,
 )
-from apps.accounts.exceptions import InvalidCredentials, InvalidPasswordReset
+from apps.accounts.exceptions import (
+    InvalidCredentials,
+    InvalidEmailVerification,
+    InvalidPasswordReset,
+)
 from apps.accounts.services import (
     authenticate_user,
     change_password,
     request_password_reset,
+    send_email_verification,
 )
 
 AUTH_ERROR = OpenApiResponse(description="The submitted data is invalid.")
@@ -47,7 +53,10 @@ class RegisterView(AccountAuthView):
 
     @accounts_schema(
         summary="Register an account",
-        description="Creates an active account, accepts the terms, and starts a session.",
+        description=(
+            "Creates an active account, accepts the terms, starts a session, "
+            "and sends an email confirmation link."
+        ),
         request=RegisterSerializer,
         responses={201: UserSerializer, 400: AUTH_ERROR},
     )
@@ -65,6 +74,7 @@ class RegisterView(AccountAuthView):
             password=serializer.validated_data["password"],
             request=request,
         )
+        send_email_verification(user)
         return Response(UserSerializer(user).data, status=status.HTTP_201_CREATED)
 
 
@@ -167,4 +177,41 @@ class PasswordResetConfirmView(AccountAuthView):
             ) from exc
         except DjangoValidationError as exc:
             raise ValidationError({"password": list(exc.messages)}) from exc
+        return Response(status=status.HTTP_204_NO_CONTENT)
+
+
+class EmailVerificationConfirmView(AccountAuthView):
+    throttle_classes = [AccountsResetThrottle]
+
+    @accounts_schema(
+        summary="Confirm an email address",
+        request=EmailVerificationSerializer,
+        responses={204: None, 400: AUTH_ERROR},
+    )
+    def post(self, request):
+        serializer = EmailVerificationSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        try:
+            serializer.save()
+        except InvalidEmailVerification as exc:
+            raise ValidationError(
+                {"token": "This email confirmation link is invalid or has expired."}
+            ) from exc
+        return Response(status=status.HTTP_204_NO_CONTENT)
+
+
+class EmailVerificationSendView(APIView):
+    authentication_classes = [AccountSessionAuthentication]
+    permission_classes = [IsActiveAccount]
+    throttle_classes = [AccountsResetThrottle]
+
+    @accounts_schema(
+        summary="Send an email confirmation link",
+        description="Sends a link when the address is still unconfirmed.",
+        request=None,
+        responses={204: None, 401: UNAUTHORIZED, 403: UNAUTHORIZED},
+    )
+    def post(self, request):
+        if request.user.email_verified_at is None:
+            send_email_verification(request.user)
         return Response(status=status.HTTP_204_NO_CONTENT)

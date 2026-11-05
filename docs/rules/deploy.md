@@ -8,6 +8,8 @@ Der Dev-Stack bleibt `make dev`. Auslieferung nutzt dieselben Images mit dem Zie
 
 `EMAIL_BACKEND` wählt die Klasse von `MAILERS["default"]`. Für SMTP kommen Host, Port, Benutzer und TLS aus `EMAIL_HOST`, `EMAIL_PORT`, `EMAIL_HOST_USER`, `EMAIL_HOST_PASSWORD` und `EMAIL_USE_TLS`. Das Django-Setting `EMAIL_BACKEND` bleibt ungesetzt.
 
+`REDIS_PASSWORD` schützt Redis. Django hängt das Passwort an die Cache-URL. `FRONTEND_ORIGIN` ist die Browser-Adresse in Links für Passwort und E-Mail-Bestätigung, zum Beispiel `https://example.com`.
+
 Sobald `DEBUG` aus ist, verlangt Django einen `SECRET_KEY`. Session- und CSRF-Cookies werden dann nur über HTTPS gesendet, HTTP wird auf HTTPS umgeleitet, und HSTS ist an. Der TLS-Abschluss muss `X-Forwarded-Proto` setzen und einen vom Client gelieferten Wert verwerfen. `SECURE_PROXY_SSL_HEADER` erwartet genau diesen Header.
 
 `CSRF_COOKIE_HTTPONLY` bleibt aus, weil der Browser-Client das Cookie selbst liest. `SameSite` ist `Lax`.
@@ -21,9 +23,13 @@ cp docker/.env.prod.example docker/.env.prod
 make prod
 ```
 
-Das Backend startet Gunicorn. Static-Dateien sammelt das Image mit `collectstatic` und liefert sie über WhiteNoise aus. `SERVE_MEDIA=true` lässt denselben Prozess hochgeladene Dateien ausliefern. Ein späterer Speicher tritt an die Stelle von `STORAGES["default"]`, ohne die Views zu ändern.
+Das Backend startet Gunicorn mit `backend/gunicorn.conf.py`. Das Access-Log enthält die `X-Request-ID` der Antwort. Static-Dateien sammelt das Image mit `collectstatic` und liefert sie über WhiteNoise aus. `SERVE_MEDIA=true` lässt denselben Prozess hochgeladene Dateien ausliefern. Ein späterer Speicher tritt an die Stelle von `STORAGES["default"]`, ohne die Views zu ändern.
 
-Das Frontend-Image führt `next build` aus und startet `next start`.
+Die Stufe `prod` läuft ohne root. Das Backend nutzt den Benutzer `app`, das Frontend den Benutzer `node` aus dem Node-Image. Beide haben UID 1000. `media` und `staticfiles` gehören `app`. Die Dev-Stufe bleibt root, weil die Bind-Mounts dem Host gehören.
+
+Das Frontend-Image führt `next build` aus, installiert die Laufzeit ohne Dev-Pakete und startet `next start`. Antworten tragen `X-Content-Type-Options`, `Referrer-Policy`, `X-Frame-Options`, `Permissions-Policy` und eine Content-Security-Policy. Skripte und Styles erlauben `'unsafe-inline'`, weil das Theme beim Laden ein Inline-Skript braucht und Tailwind Inline-Styles setzt.
+
+`docker/compose.prod.yml` veröffentlicht das Backend nicht. API und Admin laufen über den Frontend-Proxy oder `docker compose exec`. Redis und PostgreSQL bleiben im Compose-Netz.
 
 ## Prüfungen
 

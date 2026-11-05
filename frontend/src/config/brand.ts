@@ -8,9 +8,6 @@ const projectName = configured(process.env.PROJECT_NAME, "jd_template");
 export const brand = {
   projectName,
   apiTitle: configured(process.env.API_TITLE, `${projectName} API`),
-  apiDescription: configured(
-    process.env.API_DESCRIPTION,
-    `HTTP-API für ${projectName}`,
-  ),
+  apiDescription: configured(process.env.API_DESCRIPTION, `HTTP-API für ${projectName}`),
   apiVersion: configured(process.env.API_VERSION, "0.1.0"),
 };

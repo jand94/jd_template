@@ -9,7 +9,7 @@ Der lokale Stack ist Docker Compose. Host-Ports und der Datenbankzugang stehen i
 | db | PostgreSQL 18 | `POSTGRES_PORT` | 5432 |
 | redis | Redis 8.10 | `REDIS_PORT` | 6379 |
 
-Im Container spricht Django die Datenbank über `POSTGRES_HOST=db` und Redis über `REDIS_HOST=redis` an, jeweils auf dem internen Port. Die Variablen in `.env` sind die Ports auf dem Rechner.
+Im Container spricht Django die Datenbank über `POSTGRES_HOST=db` und Redis über `REDIS_HOST=redis` an, jeweils auf dem internen Port. Die Variablen in `.env` sind die Ports auf dem Rechner. `REDIS_PASSWORD` gilt für Redis und den Django-Cache. `make redis-cli` nutzt dasselbe Passwort über `REDISCLI_AUTH`.
 
 `PROJECT_NAME`, `API_TITLE`, `API_DESCRIPTION` und `API_VERSION` gelten für Backend und Frontend. Das Frontend liest sie in `src/config/brand.ts`. Compose übergibt diese vier Variablen an den Frontend-Container.
 

@@ -27,7 +27,11 @@ function zoneOf(filename) {
     const name = relative.slice("features/".length).split("/")[0];
     return name ? { kind: "feature", name } : { kind: "other" };
   }
-  if (relative.startsWith("components/") || relative.startsWith("lib/") || relative.startsWith("config/")) {
+  if (
+    relative.startsWith("components/") ||
+    relative.startsWith("lib/") ||
+    relative.startsWith("config/")
+  ) {
     return { kind: "shell" };
   }
   if (relative.startsWith("app/")) {
@@ -56,7 +60,10 @@ function targetFeature(abs) {
   if (index === -1) {
     return null;
   }
-  const parts = abs.slice(index + marker.length).split("/").filter(Boolean);
+  const parts = abs
+    .slice(index + marker.length)
+    .split("/")
+    .filter(Boolean);
   const name = parts[0];
   if (!name) {
     return null;
