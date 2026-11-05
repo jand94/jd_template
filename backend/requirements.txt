@@ -6,4 +6,4 @@ gunicorn==23.0.0
 psycopg[binary]==3.3.6
 redis==8.1.0
 hiredis==3.5.0
-whitenoise==6.11.0
+whitenoise==6.12.0
